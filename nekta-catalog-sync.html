@@ -1,0 +1,738 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1">
+<title>Nekta — Catalog Sync</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="js/firebase-app-compat.js"></script>
+<script src="js/firebase-firestore-compat.js"></script>
+<script src="js/firebase-config.js"></script>
+<style>
+:root {
+  --bg:#0b1120; --card:#111827; --border:#1f2d42;
+  --g:#00e676; --gbg:rgba(0,230,118,.08); --gborder:rgba(0,230,118,.2);
+  --red:#ff4757; --redbg:rgba(255,71,87,.08); --redborder:rgba(255,71,87,.2);
+  --amber:#ffd600; --amberbg:rgba(255,214,0,.08);
+  --blue:#40c4ff; --bluebg:rgba(64,196,255,.08);
+  --text:#e2eaf4; --text2:#6b8099; --text3:#3a4f65;
+  --font:'Segoe UI',system-ui,sans-serif;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{height:100%;background:var(--bg);color:var(--text);font-family:var(--font);-webkit-font-smoothing:antialiased}
+body{min-height:100vh}
+
+/* ── HEADER ── */
+.header{
+  background:linear-gradient(135deg,#0a1628,#0d1f35);
+  border-bottom:1px solid var(--border);
+  padding:20px 28px;display:flex;align-items:center;gap:16px;
+  position:sticky;top:0;z-index:100;
+}
+.header-logo{font-size:22px;font-weight:800;color:var(--g);letter-spacing:-1px}
+.header-title{font-size:13px;color:var(--text2);font-weight:500}
+.header-status{
+  margin-left:auto;display:flex;align-items:center;gap:8px;
+  font-size:12px;font-weight:600;color:var(--text2);
+}
+.status-dot{width:8px;height:8px;border-radius:50%;background:var(--text3)}
+.status-dot.live{background:var(--g);box-shadow:0 0 6px var(--g)}
+
+/* ── MAIN ── */
+.main{max-width:960px;margin:0 auto;padding:32px 20px 60px}
+
+/* ── STEP CARDS ── */
+.steps{display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;margin-bottom:32px}
+@media(max-width:640px){.steps{grid-template-columns:1fr}}
+.step{
+  background:var(--card);border:1px solid var(--border);
+  border-radius:16px;padding:20px;position:relative;
+}
+.step-num{
+  width:28px;height:28px;border-radius:8px;
+  background:var(--gbg);border:1px solid var(--gborder);
+  color:var(--g);font-size:13px;font-weight:800;
+  display:flex;align-items:center;justify-content:center;
+  margin-bottom:12px;
+}
+.step-title{font-size:14px;font-weight:700;margin-bottom:4px}
+.step-sub{font-size:12px;color:var(--text2);line-height:1.5}
+
+/* ── BUTTONS ── */
+.btn{
+  display:inline-flex;align-items:center;justify-content:center;gap:8px;
+  padding:12px 22px;border-radius:12px;border:none;
+  font-family:var(--font);font-size:13px;font-weight:700;cursor:pointer;
+  transition:all .15s;letter-spacing:.2px;
+}
+.btn-green{background:var(--g);color:#000}
+.btn-green:hover{filter:brightness(1.1);transform:translateY(-1px)}
+.btn-green:disabled{background:#1a3325;color:var(--text3);cursor:not-allowed;transform:none;filter:none}
+.btn-red{background:#dc2626;color:#fff}
+.btn-red:hover{background:#ef4444;transform:translateY(-1px)}
+.btn-red:disabled{background:#2a1010;color:var(--text3);cursor:not-allowed;transform:none}
+.btn-ghost{background:transparent;color:var(--text2);border:1px solid var(--border)}
+.btn-ghost:hover{background:rgba(255,255,255,.04);color:var(--text)}
+.btn-full{width:100%}
+
+/* ── EXPORT SECTION ── */
+.export-box{
+  background:var(--card);border:1px solid var(--border);
+  border-radius:16px;padding:24px;margin-bottom:20px;
+}
+.export-row{display:flex;align-items:center;gap:16px;flex-wrap:wrap}
+.export-info{flex:1;min-width:200px}
+.export-info h2{font-size:16px;font-weight:700;margin-bottom:4px}
+.export-info p{font-size:13px;color:var(--text2);line-height:1.5}
+.count-badge{
+  display:inline-flex;align-items:center;gap:6px;
+  background:var(--gbg);border:1px solid var(--gborder);
+  border-radius:8px;padding:4px 10px;
+  font-size:12px;font-weight:700;color:var(--g);margin-top:8px;
+}
+
+/* ── DROP ZONE ── */
+.drop-wrap{
+  background:var(--card);border:1px solid var(--border);
+  border-radius:16px;padding:24px;margin-bottom:20px;
+}
+.drop-wrap h2{font-size:16px;font-weight:700;margin-bottom:4px}
+.drop-wrap p{font-size:13px;color:var(--text2);margin-bottom:16px}
+.drop-zone{
+  border:2px dashed var(--border);border-radius:12px;
+  padding:40px 24px;text-align:center;cursor:pointer;
+  transition:.2s;background:rgba(255,255,255,.01);
+}
+.drop-zone:hover,.drop-zone.over{border-color:var(--g);background:var(--gbg)}
+.drop-icon{font-size:40px;margin-bottom:10px}
+.drop-title{font-size:15px;font-weight:700;margin-bottom:4px}
+.drop-sub{font-size:12px;color:var(--text2)}
+input[type=file]{display:none}
+
+/* ── DIFF PREVIEW ── */
+.preview-wrap{
+  background:var(--card);border:1px solid var(--border);
+  border-radius:16px;padding:24px;margin-bottom:20px;
+  display:none;
+}
+.preview-header{display:flex;align-items:center;gap:12px;margin-bottom:20px;flex-wrap:wrap}
+.preview-header h2{font-size:16px;font-weight:700;flex:1}
+.diff-pills{display:flex;gap:8px;flex-wrap:wrap}
+.pill{
+  display:inline-flex;align-items:center;gap:5px;
+  padding:5px 12px;border-radius:8px;font-size:12px;font-weight:700;
+}
+.pill-new{background:var(--gbg);border:1px solid var(--gborder);color:var(--g)}
+.pill-del{background:var(--redbg);border:1px solid var(--redborder);color:var(--red)}
+.pill-mod{background:var(--amberbg);border:1px solid rgba(255,214,0,.2);color:var(--amber)}
+.pill-same{background:rgba(255,255,255,.04);border:1px solid var(--border);color:var(--text2)}
+
+/* Filter bar */
+.filter-bar{display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap}
+.filter-btn{
+  padding:6px 14px;border-radius:8px;border:1px solid var(--border);
+  background:transparent;color:var(--text2);font-size:12px;font-weight:600;
+  cursor:pointer;font-family:var(--font);transition:.15s;
+}
+.filter-btn.active{background:var(--card);border-color:var(--g);color:var(--g)}
+
+/* Table */
+.tbl-wrap{overflow-x:auto;border-radius:10px;border:1px solid var(--border);max-height:420px;overflow-y:auto}
+table{width:100%;border-collapse:collapse;font-size:12px}
+thead th{
+  position:sticky;top:0;z-index:2;
+  background:#0e1929;padding:10px 14px;text-align:left;
+  color:var(--text2);font-weight:600;font-size:11px;
+  text-transform:uppercase;letter-spacing:.4px;white-space:nowrap;
+  border-bottom:1px solid var(--border);
+}
+td{padding:9px 14px;border-bottom:1px solid rgba(255,255,255,.03);vertical-align:middle}
+tr:last-child td{border-bottom:none}
+tr.row-new td:first-child{border-left:3px solid var(--g)}
+tr.row-new{background:rgba(0,230,118,.04)}
+tr.row-del td:first-child{border-left:3px solid var(--red)}
+tr.row-del{background:rgba(255,71,87,.04)}
+tr.row-mod td:first-child{border-left:3px solid var(--amber)}
+tr.row-mod{background:rgba(255,214,0,.03)}
+.tag-new{background:var(--gbg);border:1px solid var(--gborder);color:var(--g);padding:2px 7px;border-radius:5px;font-size:10px;font-weight:800}
+.tag-del{background:var(--redbg);border:1px solid var(--redborder);color:var(--red);padding:2px 7px;border-radius:5px;font-size:10px;font-weight:800}
+.tag-mod{background:var(--amberbg);border:1px solid rgba(255,214,0,.2);color:var(--amber);padding:2px 7px;border-radius:5px;font-size:10px;font-weight:800}
+.tag-same{background:rgba(255,255,255,.04);color:var(--text2);padding:2px 7px;border-radius:5px;font-size:10px;font-weight:700}
+.price{font-weight:700;color:var(--g)}
+.cat{font-size:10px;color:var(--blue);background:var(--bluebg);padding:2px 7px;border-radius:5px}
+.changed-field{color:var(--amber)}
+
+/* ── SYNC ACTION ── */
+.sync-box{
+  background:var(--card);border:1px solid var(--border);
+  border-radius:16px;padding:24px;display:none;
+}
+.sync-summary{
+  display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:20px;
+}
+@media(max-width:580px){.sync-summary{grid-template-columns:1fr 1fr}}
+.sum-card{border-radius:10px;padding:14px;text-align:center}
+.sum-card.green{background:var(--gbg);border:1px solid var(--gborder)}
+.sum-card.red{background:var(--redbg);border:1px solid var(--redborder)}
+.sum-card.amber{background:var(--amberbg);border:1px solid rgba(255,214,0,.2)}
+.sum-card.grey{background:rgba(255,255,255,.04);border:1px solid var(--border)}
+.sum-num{font-size:26px;font-weight:800;font-family:monospace;line-height:1;margin-bottom:4px}
+.sum-lbl{font-size:11px;font-weight:600;color:var(--text2)}
+.sum-card.green .sum-num{color:var(--g)}
+.sum-card.red .sum-num{color:var(--red)}
+.sum-card.amber .sum-num{color:var(--amber)}
+
+/* Progress */
+.progress-wrap{margin-top:16px;display:none}
+.progress-label{font-size:13px;color:var(--text2);margin-bottom:6px}
+.progress-bar{height:6px;background:var(--border);border-radius:3px;overflow:hidden}
+.progress-fill{height:100%;border-radius:3px;background:linear-gradient(90deg,var(--g),#00ff85);transition:width .3s ease;width:0}
+
+/* ── ALERT ── */
+.alert{border-radius:10px;padding:12px 16px;font-size:13px;margin-bottom:16px;line-height:1.5}
+.alert-warn{background:var(--amberbg);border:1px solid rgba(255,214,0,.2);color:var(--amber)}
+.alert-ok{background:var(--gbg);border:1px solid var(--gborder);color:var(--g)}
+.alert-err{background:var(--redbg);border:1px solid var(--redborder);color:var(--red)}
+
+/* ── TOAST ── */
+.toasts{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);z-index:999;display:flex;flex-direction:column;gap:8px;align-items:center;pointer-events:none}
+.toast{
+  background:#1a2d45;border:1px solid var(--border);border-radius:12px;
+  padding:12px 20px;font-size:13px;font-weight:600;min-width:260px;text-align:center;
+  box-shadow:0 8px 32px rgba(0,0,0,.6);
+  animation:tIn .3s cubic-bezier(.34,1.56,.64,1);pointer-events:auto;
+}
+.toast.ok{border-color:var(--gborder);color:var(--g)}
+.toast.err{border-color:var(--redborder);color:var(--red)}
+.toast.info{border-color:rgba(64,196,255,.3);color:var(--blue)}
+@keyframes tIn{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
+
+.spinner{width:16px;height:16px;border:2px solid var(--border);border-top-color:var(--g);border-radius:50%;animation:spin .6s linear infinite;display:inline-block}
+@keyframes spin{to{transform:rotate(360deg)}}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div>
+    <div class="header-logo">Nekta</div>
+    <div class="header-title">Catalog Sync</div>
+  </div>
+  <div class="header-status" id="conn-status">
+    <div class="status-dot" id="conn-dot"></div>
+    <span id="conn-label">Connecting…</span>
+  </div>
+</div>
+
+<div class="main">
+
+  <!-- HOW IT WORKS -->
+  <div class="steps">
+    <div class="step">
+      <div class="step-num">1</div>
+      <div class="step-title">Export</div>
+      <div class="step-sub">Download all current products as an Excel file</div>
+    </div>
+    <div class="step">
+      <div class="step-num">2</div>
+      <div class="step-title">Edit in Excel</div>
+      <div class="step-sub">Add rows, delete rows, change prices or categories</div>
+    </div>
+    <div class="step">
+      <div class="step-num">3</div>
+      <div class="step-title">Upload & Sync</div>
+      <div class="step-sub">Drop the file back — what's in the file becomes the catalog</div>
+    </div>
+  </div>
+
+  <!-- EXPORT -->
+  <div class="export-box">
+    <div class="export-row">
+      <div class="export-info">
+        <h2>📥 Export Current Catalog</h2>
+        <p>Downloads every product from Firebase as an editable .xlsx file</p>
+        <div class="count-badge" id="prod-count-badge">
+          <span class="spinner" id="count-spinner"></span>
+          <span id="prod-count-text">Loading…</span>
+        </div>
+      </div>
+      <button class="btn btn-green" id="export-btn" onclick="exportCatalog()" disabled>
+        ⬇ Download Excel
+      </button>
+    </div>
+  </div>
+
+  <!-- UPLOAD / DROP -->
+  <div class="drop-wrap">
+    <h2>📤 Upload Edited File</h2>
+    <p>Drop the Excel file you edited — we'll show you exactly what will change before syncing</p>
+    <div class="drop-zone" id="drop-zone"
+      onclick="document.getElementById('file-inp').click()"
+      ondragover="onDragOver(event)" ondragleave="onDragLeave(event)" ondrop="onDrop(event)">
+      <div class="drop-icon">📄</div>
+      <div class="drop-title">Drop your .xlsx file here</div>
+      <div class="drop-sub">or click to browse</div>
+    </div>
+    <input type="file" id="file-inp" accept=".xlsx" onchange="onFileSelect(this)">
+  </div>
+
+  <!-- DIFF PREVIEW -->
+  <div class="preview-wrap" id="preview-wrap">
+    <div class="preview-header">
+      <h2>👁 Preview Changes</h2>
+      <div class="diff-pills" id="diff-pills"></div>
+    </div>
+    <div id="parse-alert"></div>
+    <div class="filter-bar" id="filter-bar"></div>
+    <div class="tbl-wrap">
+      <table id="diff-table">
+        <thead>
+          <tr>
+            <th>Change</th><th>Name</th><th>Category</th>
+            <th>Price</th><th>Half</th><th>Unit</th><th>Stock</th>
+          </tr>
+        </thead>
+        <tbody id="diff-body"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- SYNC ACTION -->
+  <div class="sync-box" id="sync-box">
+    <div class="sync-summary" id="sync-summary"></div>
+    <div id="sync-alert"></div>
+    <div style="display:flex;gap:10px;flex-wrap:wrap">
+      <button class="btn btn-red" id="sync-btn" onclick="doSync()">🔄 Sync Now — Replace Catalog</button>
+      <button class="btn btn-ghost" onclick="resetAll()">✕ Cancel</button>
+    </div>
+    <div class="progress-wrap" id="progress-wrap">
+      <div class="progress-label" id="progress-label">Syncing…</div>
+      <div class="progress-bar"><div class="progress-fill" id="progress-fill"></div></div>
+    </div>
+  </div>
+
+</div>
+
+<div class="toasts" id="toasts"></div>
+
+<script>
+// ═══════════════════════════════════════════════════════════
+// STATE
+// ═══════════════════════════════════════════════════════════
+let _live = [];       // current products in Firebase (with _docId)
+let _uploaded = [];   // parsed rows from Excel
+let _diff = [];       // computed diff rows
+let _filter = 'all';  // current table filter
+
+const COLS = [
+  'name','teluguName','price','halfPrice','quarterPrice',
+  'slashedPrice','unit','category','img','description','stock','outOfStock'
+];
+
+// ── FIREBASE READY ───────────────────────────────────────
+function waitForFirebase(cb) {
+  if (window.db) { cb(); return; }
+  window.addEventListener('firebaseReady', cb, { once: true });
+}
+
+waitForFirebase(() => {
+  document.getElementById('conn-dot').classList.add('live');
+  document.getElementById('conn-label').textContent = 'Connected';
+  loadLiveProducts();
+});
+
+// ── LOAD LIVE PRODUCTS ───────────────────────────────────
+async function loadLiveProducts() {
+  try {
+    const snap = await window.db.collection('products').get();
+    _live = snap.docs.map(d => ({ _docId: d.id, ...d.data() }));
+    const badge = document.getElementById('prod-count-text');
+    badge.textContent = _live.length + ' products in catalog';
+    document.getElementById('count-spinner').style.display = 'none';
+    document.getElementById('export-btn').disabled = false;
+  } catch (e) {
+    document.getElementById('prod-count-text').textContent = 'Failed to load';
+    toast('Firebase error: ' + e.message, 'err');
+  }
+}
+
+// ═══════════════════════════════════════════════════════════
+// EXPORT
+// ═══════════════════════════════════════════════════════════
+function exportCatalog() {
+  if (!_live.length) { toast('No products loaded', 'err'); return; }
+
+  const rows = _live.map(p => ({
+    'name':             p.name          || '',
+    'teluguName':       p.teluguName    || '',
+    'price':            p.price         ?? '',
+    'halfPrice':        p.halfPrice     ?? '',
+    'quarterPrice':     p.quarterPrice  ?? '',
+    'slashedPrice':     p.slashedPrice  ?? '',
+    'unit':             p.unit          || '',
+    'category':         p.category      || '',
+    'img':              (p.img || '').replace('./images/', '').replace('images/', ''),
+    'description':      p.description   || '',
+    'stock':            p.stock         ?? 100,
+    'outOfStock':       p.outOfStock    ? 'true' : 'false',
+  }));
+
+  const ws = XLSX.utils.json_to_sheet(rows);
+  ws['!cols'] = [
+    {wch:32},{wch:20},{wch:8},{wch:10},{wch:12},{wch:12},
+    {wch:10},{wch:16},{wch:28},{wch:32},{wch:8},{wch:20}
+  ];
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'Catalog');
+  XLSX.writeFile(wb, 'nekta-catalog-' + new Date().toISOString().slice(0,10) + '.xlsx');
+  toast('✅ Downloaded ' + rows.length + ' products', 'ok');
+}
+
+// ═══════════════════════════════════════════════════════════
+// FILE HANDLING
+// ═══════════════════════════════════════════════════════════
+function onDragOver(e) { e.preventDefault(); document.getElementById('drop-zone').classList.add('over'); }
+function onDragLeave()  { document.getElementById('drop-zone').classList.remove('over'); }
+function onDrop(e) {
+  e.preventDefault();
+  document.getElementById('drop-zone').classList.remove('over');
+  if (e.dataTransfer.files[0]) processFile(e.dataTransfer.files[0]);
+}
+function onFileSelect(inp) { if (inp.files[0]) processFile(inp.files[0]); inp.value = ''; }
+
+function processFile(file) {
+  if (!file.name.toLowerCase().endsWith('.xlsx')) { toast('Please upload a .xlsx file', 'err'); return; }
+  const reader = new FileReader();
+  reader.onload = e => {
+    try {
+      const wb = XLSX.read(new Uint8Array(e.target.result), { type: 'array' });
+      const ws = wb.Sheets[wb.SheetNames[0]];
+      const json = XLSX.utils.sheet_to_json(ws, { defval: '' });
+      const { rows, skipped } = parseRows(json);
+      if (!rows.length) { toast('No valid rows found in file', 'err'); return; }
+      _uploaded = rows;
+      computeAndShowDiff(skipped);
+    } catch (err) {
+      toast('Error reading file: ' + err.message, 'err');
+    }
+  };
+  reader.readAsArrayBuffer(file);
+}
+
+// ═══════════════════════════════════════════════════════════
+// PARSE UPLOADED ROWS
+// ═══════════════════════════════════════════════════════════
+function parseRows(json) {
+  // Map common column header variations to our field names
+  const KEY_MAP = {
+    'name':'name', 'telugu name':'teluguName', 'teluguname':'teluguName',
+    'price':'price', 'price (₹)':'price',
+    'half price':'halfPrice', 'halfprice':'halfPrice', 'half price (₹)':'halfPrice',
+    'quarter price':'quarterPrice', 'quarterprice':'quarterPrice', 'quarter price (₹)':'quarterPrice',
+    'slashed price':'slashedPrice', 'slashedprice':'slashedPrice', 'slashed price (₹)':'slashedPrice',
+    'unit':'unit', 'category':'category',
+    'img':'img', 'image':'img', 'image filename':'img',
+    'description':'description',
+    'stock':'stock',
+    'out of stock':'outOfStock', 'outofstock':'outOfStock', 'out of stock (true/false)':'outOfStock'
+  };
+
+  const rows = [], skipped = [];
+  json.forEach((raw, idx) => {
+    const r = {};
+    Object.entries(raw).forEach(([k, v]) => {
+      const mapped = KEY_MAP[k.trim().toLowerCase()] || k.trim();
+      r[mapped] = String(v ?? '').trim();
+    });
+
+    if (!r.name) return;
+
+    const price = parseFloat(r.price);
+    if (!price || price <= 0) { skipped.push(`Row ${idx+2} (${r.name}): invalid price`); return; }
+
+    let img = (r.img || '').trim();
+    if (img && !img.startsWith('http') && !img.startsWith('./') && !img.startsWith('images/')) {
+      img = 'images/' + img;
+    }
+
+    rows.push({
+      name:         r.name,
+      teluguName:   r.teluguName   || '',
+      price,
+      halfPrice:    parseFloat(r.halfPrice)    || undefined,
+      quarterPrice: parseFloat(r.quarterPrice) || undefined,
+      slashedPrice: parseFloat(r.slashedPrice) || undefined,
+      unit:         r.unit         || 'Pc',
+      category:     (r.category || '').toUpperCase() || 'GENERAL',
+      img:          img || 'images/nektaIcon.svg',
+      description:  r.description  || '',
+      stock:        parseInt(r.stock) >= 0 ? parseInt(r.stock) : 100,
+      outOfStock:   ['true','1','yes'].includes((r.outOfStock||'').toLowerCase()),
+    });
+  });
+
+  return { rows, skipped };
+}
+
+// ═══════════════════════════════════════════════════════════
+// DIFF ENGINE
+// ═══════════════════════════════════════════════════════════
+function computeAndShowDiff(skipped) {
+  const liveMap = {};
+  _live.forEach(p => { liveMap[norm(p.name)] = p; });
+
+  const uploadedNames = new Set(_uploaded.map(r => norm(r.name)));
+
+  _diff = [];
+
+  // New & modified
+  _uploaded.forEach(r => {
+    const existing = liveMap[norm(r.name)];
+    if (!existing) {
+      _diff.push({ type: 'new', row: r, old: null, changedFields: [] });
+    } else {
+      const changed = COLS.filter(f => {
+        const nv = r[f] === undefined ? '' : String(r[f]);
+        const ov = existing[f] === undefined ? '' : String(existing[f]);
+        return nv !== ov;
+      });
+      if (changed.length) {
+        _diff.push({ type: 'mod', row: r, old: existing, changedFields: changed });
+      } else {
+        _diff.push({ type: 'same', row: r, old: existing, changedFields: [] });
+      }
+    }
+  });
+
+  // Deleted (in live but not in uploaded)
+  _live.forEach(p => {
+    if (!uploadedNames.has(norm(p.name))) {
+      _diff.push({ type: 'del', row: p, old: p, changedFields: [] });
+    }
+  });
+
+  renderDiff(skipped);
+}
+
+function norm(s) { return String(s||'').toLowerCase().trim(); }
+
+// ═══════════════════════════════════════════════════════════
+// RENDER DIFF TABLE
+// ═══════════════════════════════════════════════════════════
+function renderDiff(skipped) {
+  const counts = { new:0, del:0, mod:0, same:0 };
+  _diff.forEach(d => counts[d.type]++);
+
+  // Show pills
+  document.getElementById('diff-pills').innerHTML = `
+    <span class="pill pill-new">+ ${counts.new} new</span>
+    <span class="pill pill-del">− ${counts.del} deleted</span>
+    <span class="pill pill-mod">~ ${counts.mod} changed</span>
+    <span class="pill pill-same">${counts.same} unchanged</span>`;
+
+  // Alert for skipped rows
+  const alertEl = document.getElementById('parse-alert');
+  alertEl.innerHTML = skipped.length
+    ? `<div class="alert alert-warn">⚠️ ${skipped.length} rows skipped (invalid price or blank name):<br>${skipped.slice(0,4).map(s=>'• '+s).join('<br>')}${skipped.length>4?`<br>… and ${skipped.length-4} more`:''}</div>`
+    : '';
+
+  // Filter buttons
+  document.getElementById('filter-bar').innerHTML = `
+    <button class="filter-btn active" data-f="all" onclick="setFilter('all',this)">All (${_diff.length})</button>
+    <button class="filter-btn" data-f="new"  onclick="setFilter('new',this)">+ New (${counts.new})</button>
+    <button class="filter-btn" data-f="del"  onclick="setFilter('del',this)">− Deleted (${counts.del})</button>
+    <button class="filter-btn" data-f="mod"  onclick="setFilter('mod',this)">~ Changed (${counts.mod})</button>
+    <button class="filter-btn" data-f="same" onclick="setFilter('same',this)">Unchanged (${counts.same})</button>`;
+
+  renderTable();
+  document.getElementById('preview-wrap').style.display = 'block';
+
+  // Sync summary
+  document.getElementById('sync-summary').innerHTML = `
+    <div class="sum-card green"><div class="sum-num">${counts.new}</div><div class="sum-lbl">Will be added</div></div>
+    <div class="sum-card red"><div class="sum-num">${counts.del}</div><div class="sum-lbl">Will be deleted</div></div>
+    <div class="sum-card amber"><div class="sum-num">${counts.mod}</div><div class="sum-lbl">Will be updated</div></div>
+    <div class="sum-card grey"><div class="sum-num">${counts.same}</div><div class="sum-lbl">No change</div></div>`;
+
+  const syncAlert = document.getElementById('sync-alert');
+  if (counts.del > 0) {
+    syncAlert.innerHTML = `<div class="alert alert-warn" style="margin-bottom:16px">⚠️ <b>${counts.del} products</b> are NOT in your file and will be permanently deleted from the app.</div>`;
+  } else {
+    syncAlert.innerHTML = '';
+  }
+
+  document.getElementById('sync-box').style.display = 'block';
+  document.getElementById('sync-box').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+}
+
+function setFilter(f, btn) {
+  _filter = f;
+  document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  renderTable();
+}
+
+function renderTable() {
+  const rows = _filter === 'all' ? _diff : _diff.filter(d => d.type === _filter);
+  const body = document.getElementById('diff-body');
+
+  body.innerHTML = rows.slice(0, 200).map(d => {
+    const p = d.row;
+    const tag = d.type === 'new'  ? '<span class="tag-new">NEW</span>'
+              : d.type === 'del'  ? '<span class="tag-del">DELETE</span>'
+              : d.type === 'mod'  ? '<span class="tag-mod">CHANGED</span>'
+              : '<span class="tag-same">—</span>';
+
+    const priceCls = d.changedFields.includes('price') ? ' changed-field' : '';
+    const halfCls  = d.changedFields.includes('halfPrice') ? ' changed-field' : '';
+
+    return `<tr class="row-${d.type}">
+      <td>${tag}</td>
+      <td style="font-weight:600;max-width:200px;word-break:break-word">
+        ${esc(p.name)}
+        ${p.teluguName ? `<br><span style="font-size:10px;color:var(--text2)">${p.teluguName}</span>` : ''}
+      </td>
+      <td><span class="cat">${p.category||''}</span></td>
+      <td class="price${priceCls}">₹${p.price||0}</td>
+      <td class="price${halfCls}" style="opacity:.7">${p.halfPrice ? '₹'+p.halfPrice : '—'}</td>
+      <td style="font-size:11px;color:var(--text2)">${p.unit||''}</td>
+      <td style="font-size:11px;font-family:monospace">${p.stock??''}</td>
+    </tr>`;
+  }).join('');
+
+  if (rows.length > 200) {
+    body.innerHTML += `<tr><td colspan="7" style="text-align:center;padding:12px;color:var(--text2)">… and ${rows.length - 200} more rows</td></tr>`;
+  }
+  if (!rows.length) {
+    body.innerHTML = `<tr><td colspan="7" style="text-align:center;padding:24px;color:var(--text2)">No rows in this filter</td></tr>`;
+  }
+}
+
+// ═══════════════════════════════════════════════════════════
+// SYNC
+// ═══════════════════════════════════════════════════════════
+async function doSync() {
+  if (!_uploaded.length) { toast('No data to sync', 'err'); return; }
+  if (!window.db) { toast('Not connected to Firebase', 'err'); return; }
+
+  const counts = { new:0, del:0, mod:0 };
+  _diff.forEach(d => { if (d.type !== 'same') counts[d.type]++; });
+
+  const confirmed = confirm(
+    '⚠️  SYNC CATALOG — CONFIRM\n\n' +
+    '  Add:    ' + counts.new + ' new products\n' +
+    '  Update: ' + counts.mod + ' changed products\n' +
+    '  Delete: ' + counts.del + ' removed products\n\n' +
+    'This replaces the live catalog. Continue?'
+  );
+  if (!confirmed) return;
+
+  const btn = document.getElementById('sync-btn');
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner"></span> Syncing…';
+  document.getElementById('progress-wrap').style.display = 'block';
+
+  const liveMap = {};
+  _live.forEach(p => { liveMap[norm(p.name)] = p; });
+  const uploadedNames = new Set(_uploaded.map(r => norm(r.name)));
+
+  const total = _diff.filter(d => d.type !== 'same').length || 1;
+  let done = 0;
+
+  try {
+    // ── Add / Update (batch 400) ──────────────────────────
+    const toWrite = _uploaded.filter(r => {
+      const existing = liveMap[norm(r.name)];
+      if (!existing) return true; // new
+      // check if actually changed
+      return COLS.some(f => String(r[f]??'') !== String(existing[f]??''));
+    });
+
+    for (let i = 0; i < toWrite.length; i += 400) {
+      const batch = window.db.batch();
+      toWrite.slice(i, i + 400).forEach(r => {
+        const existing = liveMap[norm(r.name)];
+        const clean = cleanForFirestore(r);
+        if (existing && existing._docId) {
+          batch.update(window.db.collection('products').doc(existing._docId), clean);
+        } else {
+          clean.createdAt = firebase.firestore.FieldValue.serverTimestamp();
+          batch.set(window.db.collection('products').doc(), clean);
+        }
+        done++;
+      });
+      await batch.commit();
+      setProgress(done / total * 60, `Updating ${done}/${toWrite.length}…`);
+    }
+
+    // ── Delete ───────────────────────────────────────────
+    const toDelete = _live.filter(p => !uploadedNames.has(norm(p.name)) && p._docId);
+    for (let i = 0; i < toDelete.length; i += 400) {
+      const batch = window.db.batch();
+      toDelete.slice(i, i + 400).forEach(p => {
+        batch.delete(window.db.collection('products').doc(p._docId));
+        done++;
+      });
+      await batch.commit();
+      setProgress(60 + (done / total * 40), `Deleting ${i + Math.min(400, toDelete.length - i)}…`);
+    }
+
+    setProgress(100, '✅ Done!');
+    toast(`✅ Synced! +${counts.new} added, ~${counts.mod} updated, −${counts.del} deleted`, 'ok', 5000);
+
+    // Refresh local cache
+    const snap = await window.db.collection('products').get();
+    _live = snap.docs.map(d => ({ _docId: d.id, ...d.data() }));
+    document.getElementById('prod-count-text').textContent = _live.length + ' products in catalog';
+
+    setTimeout(resetAll, 2000);
+
+  } catch (e) {
+    toast('Sync failed: ' + e.message, 'err');
+    btn.disabled = false;
+    btn.innerHTML = '🔄 Sync Now — Replace Catalog';
+  }
+}
+
+function cleanForFirestore(r) {
+  const out = { ...r };
+  // Remove undefined values (Firestore rejects them)
+  Object.keys(out).forEach(k => { if (out[k] === undefined) delete out[k]; });
+  return out;
+}
+
+function setProgress(pct, label) {
+  document.getElementById('progress-fill').style.width = Math.min(pct, 100) + '%';
+  document.getElementById('progress-label').textContent = label;
+}
+
+// ═══════════════════════════════════════════════════════════
+// UTILS
+// ═══════════════════════════════════════════════════════════
+function resetAll() {
+  _uploaded = [];
+  _diff = [];
+  _filter = 'all';
+  document.getElementById('preview-wrap').style.display = 'none';
+  document.getElementById('sync-box').style.display = 'none';
+  document.getElementById('progress-wrap').style.display = 'none';
+  document.getElementById('progress-fill').style.width = '0';
+  const btn = document.getElementById('sync-btn');
+  btn.disabled = false;
+  btn.innerHTML = '🔄 Sync Now — Replace Catalog';
+}
+
+function esc(s) {
+  return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+function toast(msg, type='ok', ms=3500) {
+  const el = document.createElement('div');
+  el.className = 'toast ' + type;
+  el.textContent = msg;
+  document.getElementById('toasts').appendChild(el);
+  setTimeout(() => el.remove(), ms);
+}
+</script>
+</body>
+</html>

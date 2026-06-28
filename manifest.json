@@ -1,0 +1,53 @@
+{
+  "name": "Nekta Grocer",
+  "short_name": "Nekta",
+  "description": "Fresh groceries in 15 mins — Kothagudem",
+  "start_url": "/index.html?utm_source=pwa",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#00b96b",
+  "theme_color": "#00b96b",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "images/UserAppIcon.jpeg",
+      "sizes": "192x192",
+      "type": "image/jpeg",
+      "purpose": "any"
+    },
+    {
+      "src": "images/UserAppIcon.jpeg",
+      "sizes": "512x512",
+      "type": "image/jpeg",
+      "purpose": "any"
+    },
+    {
+      "src": "images/UserAppIcon.jpeg",
+      "sizes": "192x192",
+      "type": "image/jpeg",
+      "purpose": "maskable"
+    },
+    {
+      "src": "images/UserAppIcon.jpeg",
+      "sizes": "512x512",
+      "type": "image/jpeg",
+      "purpose": "maskable"
+    }
+  ],
+  "categories": ["shopping", "food"],
+  "screenshots": [
+    {
+      "src": "images/UserAppIcon.jpeg",
+      "sizes": "540x720",
+      "type": "image/jpeg",
+      "form_factor": "narrow",
+      "label": "Nekta Grocer home screen"
+    }
+  ],
+  "shortcuts": [
+    { "name": "Order Now", "url": "/index.html?view=catalog", "icons": [{ "src": "images/UserAppIcon.jpeg", "sizes": "192x192" }] },
+    { "name": "Track Order", "url": "/index.html?view=profile", "icons": [{ "src": "images/UserAppIcon.jpeg", "sizes": "192x192" }] }
+  ],
+  "prefer_related_applications": false,
+  "version": "9.2"
+}

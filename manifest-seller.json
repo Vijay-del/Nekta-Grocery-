@@ -1,0 +1,51 @@
+{
+  "name": "Nekta Seller",
+  "short_name": "Seller",
+  "description": "Manage your Nekta shop \u2014 orders, products, riders",
+  "start_url": "/seller.html",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#00b96b",
+  "theme_color": "#00b96b",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "images/SellerAppIcon.jpeg",
+      "sizes": "192x192",
+      "type": "image/jpeg",
+      "purpose": "any"
+    },
+    {
+      "src": "images/SellerAppIcon.jpeg",
+      "sizes": "512x512",
+      "type": "image/jpeg",
+      "purpose": "any"
+    },
+    {
+      "src": "images/SellerAppIcon.jpeg",
+      "sizes": "192x192",
+      "type": "image/jpeg",
+      "purpose": "maskable"
+    },
+    {
+      "src": "images/SellerAppIcon.jpeg",
+      "sizes": "512x512",
+      "type": "image/jpeg",
+      "purpose": "maskable"
+    }
+  ],
+  "categories": [
+    "business",
+    "productivity"
+  ],
+  "screenshots": [
+    {
+      "src": "images/SellerAppIcon.jpeg",
+      "sizes": "540x720",
+      "type": "image/jpeg",
+      "form_factor": "narrow"
+    }
+  ],
+  "prefer_related_applications": false,
+  "version": "1.1"
+}

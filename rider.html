@@ -1,0 +1,2514 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="theme-color" content="#0C8B4A">
+<title>Nekta Rider</title>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;500;600;700;800;900&family=Roboto+Mono:wght@500;700&family=Dancing+Script:wght@700&display=swap" rel="stylesheet">
+
+<link rel="manifest" href="manifest-rider.json">
+<link rel="apple-touch-icon" href="images/riderAppIcon.jpeg">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Nekta Rider">
+<script src="https://unpkg.com/@lottiefiles/dotlottie-wc@0.9.14/dist/dotlottie-wc.js" type="module"></script>
+<style>
+#splash-screen{
+  position:fixed;inset:0;background:#0C8B4A;display:flex;flex-direction:column;
+  align-items:center;justify-content:center;z-index:99999;
+  transition:opacity .4s ease;
+}
+#splash-screen.hide{opacity:0;pointer-events:none;}
+:root{
+  --green:#0C8B4A;--green-light:#E6F7EE;--green-mid:#1DB35B;--green2:#0A6B38;
+  --greendim:rgba(12,139,74,.1);--yellow:#FFCB00;--yellow-dark:#E5A800;
+  --orange:#FF6B35;--red:#E53935;--blue:#1565C0;--purple:#6A1B9A;
+  --bg:#F4F6F8;--white:#FFFFFF;--card:#FFFFFF;--border:#E8ECEF;
+  --text:#1A1A2E;--text2:#5A6070;--text3:#9BA3B0;
+  --shadow:0 2px 12px rgba(0,0,0,.08);--shadow-lg:0 8px 32px rgba(0,0,0,.14);
+  --radius:16px;--radius-sm:10px;
+  --font:'Nunito',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;--mono:'Roboto Mono',monospace;
+  --nav-h:140px;--bottom-h:68px;
+  --safe-top:env(safe-area-inset-top,0px);--safe-bot:env(safe-area-inset-bottom,0px);
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html,body{min-height:100%;height:100dvh;background:var(--bg);color:var(--text);font-family:var(--font);overflow:hidden}
+::-webkit-scrollbar{display:none}
+
+/* ── DESKTOP: show as phone frame ── */
+@media(min-width:480px){html,body{background:linear-gradient(135deg,#0C8B4A 0%,#0A6B38 50%,#064d28 100%)!important;overflow:hidden}#login-screen{width:430px!important;left:50%!important;right:auto!important;transform:translateX(-50%)!important;box-shadow:0 0 80px rgba(0,0,0,.6)}#app{position:fixed!important;width:430px!important;left:50%!important;right:auto!important;transform:translateX(-50%)!important;box-shadow:0 0 80px rgba(0,0,0,.6)}#bnav{width:430px!important;left:50%!important;right:auto!important;transform:translateX(-50%)!important}.modal-overlay{width:430px!important;left:50%!important;right:auto!important;transform:translateX(-50%)!important}#toast{max-width:400px}}
+@media(max-width:600px){\n.pod-photo-zone{height:180px}\n.checkbox-row{min-height:60px;padding:16px;gap:14px}\n#pod-cash-row input[type=\"checkbox\"]{width:24px;height:24px;min-width:24px}\n#pod-cash-row label{font-size:15px;line-height:1.4}\n.pod-content{max-height:calc(100vh - 120px)}\n#pod-chk:checked{box-shadow:0 0 8px rgba(12,139,74,.4)}\n}
+/* LOGIN */
+#login-screen{position:fixed;inset:0;background:var(--white);display:none;flex-direction:column;align-items:center;justify-content:center;padding:32px 24px;z-index:999;overflow-y:auto;-webkit-overflow-scrolling:touch;}
+.login-logo{width:80px;height:80px;border-radius:22px;background:linear-gradient(135deg,var(--green),var(--green2));display:flex;align-items:center;justify-content:center;font-size:36px;margin-bottom:20px;box-shadow:0 8px 32px rgba(12,139,74,.35);}
+.login-brand{font-size:28px;font-weight:900;color:var(--green);letter-spacing:-.5px;margin-bottom:4px}
+.login-brand span{color:var(--yellow-dark)}
+.login-sub{font-size:14px;color:var(--text2);font-weight:600;margin-bottom:36px}
+.inp-wrap{width:100%;max-width:340px;margin-bottom:14px}
+.inp-label{font-size:11px;font-weight:800;color:var(--text2);text-transform:uppercase;letter-spacing:.8px;margin-bottom:7px;display:block}
+.inp-field{width:100%;background:var(--bg);border:1.5px solid var(--border);border-radius:12px;padding:14px 16px;color:var(--text);font-family:var(--font);font-size:16px;outline:none;transition:.2s;}
+.inp-field:focus{border-color:var(--green);background:var(--white);box-shadow:0 0 0 3px var(--greendim)}
+.login-btn{width:100%;max-width:340px;background:linear-gradient(135deg,var(--green),var(--green2));color:white;border:none;border-radius:14px;padding:16px;font-family:var(--font);font-size:16px;font-weight:800;cursor:pointer;transition:.15s;margin-top:4px;box-shadow:0 4px 20px rgba(12,139,74,.4);}
+.login-btn:active{transform:scale(.97)}
+.login-btn:disabled{opacity:.6;cursor:not-allowed;transform:none}
+.login-err{font-size:13px;color:var(--red);margin-top:10px;min-height:18px;text-align:center;font-weight:700}
+.login-invite-box{width:100%;max-width:340px;margin-top:20px;background:#FFF3E0;border:1.5px solid #FFCC80;border-radius:14px;padding:16px;text-align:center;}
+.login-invite-title{font-size:14px;font-weight:900;color:var(--orange);margin-bottom:6px}
+.login-invite-sub{font-size:12px;color:var(--text2);font-weight:600;line-height:1.5;margin-bottom:12px}
+.login-wa-btn{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;padding:12px;background:#25D366;color:white;border:none;border-radius:12px;font-family:var(--font);font-size:14px;font-weight:800;cursor:pointer;}
+/* APP SHELL */
+#app{display:none;flex-direction:column;position:fixed;top:0;left:0;right:0;bottom:0;overflow:hidden}
+#app.on{display:flex}
+/* TOP NAV - Big Zepto-Style Header with Clouds */
+#top-nav{
+  background:linear-gradient(135deg,var(--white) 0%,#f8fbfa 100%);
+  border-bottom:none;
+  height:auto;
+  padding-top:calc(var(--safe-top) + 16px);
+  padding-bottom:16px;
+  padding-left:16px;
+  padding-right:16px;
+  display:flex;
+  flex-direction:column;
+  gap:16px;
+  flex-shrink:0;
+  box-shadow:0 8px 24px rgba(0,0,0,.1);
+  z-index:100;
+  position:relative;
+  overflow:hidden;
+  transition:all .5s ease;
+}
+#top-nav.rain-mode{
+  background:linear-gradient(135deg,#0D47A1 0%,#1565C0 50%,#1976D2 100%);
+}
+/* Cloud decoration top-right */
+#header-clouds{
+  position:absolute;
+  top:8px;
+  right:12px;
+  width:100px;
+  height:60px;
+  pointer-events:none;
+  z-index:0;
+}
+.cloud{
+  position:absolute;
+  bottom:0;
+  background:rgba(255,255,255,.7);
+  border-radius:50px;
+}
+.cloud:nth-child(1){
+  width:50px;
+  height:24px;
+  right:0;
+  animation:floatCloud 6s ease-in-out infinite;
+}
+.cloud:nth-child(2){
+  width:40px;
+  height:20px;
+  right:25px;
+  top:8px;
+  animation:floatCloud 7s ease-in-out infinite 1s;
+}
+.cloud:nth-child(3){
+  width:35px;
+  height:18px;
+  right:45px;
+  animation:floatCloud 8s ease-in-out infinite 2s;
+}
+#top-nav.rain-mode .cloud{
+  background:rgba(255,255,255,.4);
+  filter:blur(1px);
+}
+@keyframes floatCloud{
+  0%,100%{transform:translateX(0)}
+  50%{transform:translateX(8px)}
+}
+/* Rain drops effect on header */
+#header-rain-drops{
+  position:absolute;
+  inset:0;
+  pointer-events:none;
+  overflow:hidden;
+  border-radius:0;
+  display:none;
+  z-index:1;
+}
+#top-nav.rain-mode #header-rain-drops{
+  display:block;
+}
+.header-rain-drop{
+  position:absolute;
+  top:-10px;
+  width:2px;
+  border-radius:2px;
+  background:rgba(255,255,255,.35);
+  animation:headerRainFall linear infinite;
+}
+@keyframes headerRainFall{to{transform:translateY(100px);opacity:0}}
+
+/* Header content wrapper */
+.tn-content{
+  display:flex;
+  align-items:flex-start;
+  justify-content:space-between;
+  gap:16px;
+  position:relative;
+  z-index:2;
+}
+
+/* Location section - left side */
+.tn-location{
+  display:flex;
+  flex-direction:column;
+  gap:8px;
+  flex:1;
+}
+.tn-location-badge{
+  display:inline-flex;
+  align-items:center;
+  gap:6px;
+  background:linear-gradient(135deg,#E6F7EE,#d4f5e9);
+  border:1.5px solid rgba(12,139,74,.25);
+  border-radius:16px;
+  padding:6px 12px;
+  width:fit-content;
+  transition:.3s;
+}
+#top-nav.rain-mode .tn-location-badge{
+  background:rgba(255,255,255,.15);
+  border-color:rgba(255,255,255,.3);
+}
+.tn-location-badge svg{
+  width:14px;
+  height:14px;
+  flex-shrink:0;
+}
+.tn-location-text{
+  font-size:10px;
+  font-weight:800;
+  color:var(--text2);
+  letter-spacing:.5px;
+  text-transform:uppercase;
+  transition:.3s;
+}
+#top-nav.rain-mode .tn-location-text{
+  color:rgba(255,255,255,.8);
+}
+
+/* Big greeting/name section */
+.tn-greeting{
+  display:flex;
+  flex-direction:column;
+  gap:2px;
+}
+.tn-greeting-text{
+  font-size:14px;
+  font-weight:600;
+  color:var(--text2);
+  transition:.3s;
+}
+#top-nav.rain-mode .tn-greeting-text{
+  color:rgba(255,255,255,.7);
+}
+.tn-greeting-name{
+  font-size:28px;
+  font-weight:950;
+  letter-spacing:-.8px;
+  color:var(--text);
+  transition:.3s;
+}
+#top-nav.rain-mode .tn-greeting-name{
+  color:white;
+}
+
+/* Right side controls */
+.tn-controls{
+  display:flex;
+  flex-direction:column;
+  gap:8px;
+  align-items:flex-end;
+}
+.tn-time-chip{
+  background:linear-gradient(135deg,#E6F7EE,#c8f0dc);
+  border-radius:24px;
+  padding:8px 14px;
+  display:flex;
+  align-items:center;
+  gap:6px;
+  border:1.5px solid rgba(12,139,74,.25);
+  box-shadow:0 2px 8px rgba(12,139,74,.15);
+  transition:.3s;
+}
+#top-nav.rain-mode .tn-time-chip{
+  background:rgba(255,255,255,.15);
+  border-color:rgba(255,255,255,.3);
+  box-shadow:0 2px 8px rgba(255,255,255,.15);
+}
+.tn-time-val{
+  font-size:14px;
+  font-weight:900;
+  color:var(--green);
+  font-family:var(--mono);
+  letter-spacing:-.3px;
+  transition:.3s;
+}
+#top-nav.rain-mode .tn-time-val{
+  color:white;
+}
+.tn-rain-indicator{
+  display:flex;
+  align-items:center;
+  gap:6px;
+  background:linear-gradient(135deg,#0D47A1,#1565C0);
+  color:white;
+  padding:8px 14px;
+  border-radius:24px;
+  font-size:11px;
+  font-weight:900;
+  box-shadow:0 2px 10px rgba(13,71,161,.4);
+  animation:rain-pulse 2s ease-in-out infinite;
+}
+@keyframes rain-pulse{0%,100%{box-shadow:0 2px 10px rgba(13,71,161,.4)}50%{box-shadow:0 4px 16px rgba(13,71,161,.7)}}
+.tn-rain-indicator.active{display:flex}
+.tn-rain-indicator.off{display:none}
+.tn-rain-drop{font-size:16px;animation:float-down 0.8s ease-in-out infinite}
+@keyframes float-down{0%{transform:translateY(-4px);opacity:1}50%{opacity:1}100%{transform:translateY(4px);opacity:.3}}
+.tn-rain-text{display:flex;flex-direction:column;line-height:1.1}
+.tn-rain-amount{font-size:12px;font-weight:950;letter-spacing:-.3px}
+.online-toggle{
+  display:flex;
+  align-items:center;
+  background:linear-gradient(135deg,#f0f4f8,#e8ecf1);
+  border:1.5px solid var(--border);
+  border-radius:50px;
+  padding:4px;
+  cursor:pointer;
+  transition:all .3s cubic-bezier(.34,1.56,.64,1);
+  position:relative;
+  width:90px;
+  height:36px;
+  overflow:hidden;
+}
+#top-nav.rain-mode .online-toggle{
+  background:rgba(255,255,255,.15);
+  border-color:rgba(255,255,255,.3);
+}
+.online-toggle::before{
+  content:'';
+  position:absolute;
+  inset:0;
+  background:linear-gradient(90deg,transparent,rgba(255,255,255,.5),transparent);
+  animation:shimmer 2s infinite;
+}
+@keyframes shimmer{0%{transform:translateX(-100%)}100%{transform:translateX(100%)}}
+.online-toggle.on{
+  background:linear-gradient(135deg,#E6F7EE,#d4f5e9);
+  border-color:rgba(12,139,74,.4);
+  box-shadow:0 4px 12px rgba(12,139,74,.2)
+}
+#top-nav.rain-mode .online-toggle.on{
+  background:rgba(255,255,255,.25);
+  border-color:rgba(255,255,255,.4);
+  box-shadow:0 4px 12px rgba(255,255,255,.2);
+}
+.toggle-dot{
+  width:28px;
+  height:28px;
+  border-radius:50%;
+  background:var(--text3);
+  transition:all .3s cubic-bezier(.34,1.56,.64,1);
+  flex-shrink:0;
+  position:absolute;
+  left:4px;
+  z-index:2;
+  box-shadow:0 2px 6px rgba(0,0,0,.1)
+}
+.online-toggle.on .toggle-dot{
+  background:var(--green);
+  box-shadow:0 4px 12px rgba(12,139,74,.5);
+  left:calc(100% - 32px)
+}
+#top-nav.rain-mode .online-toggle.on .toggle-dot{
+  background:white;
+  box-shadow:0 4px 12px rgba(255,255,255,.5);
+}
+.toggle-txt{
+  font-size:10px;
+  font-weight:900;
+  color:var(--text3);
+  transition:all .2s;
+  text-transform:uppercase;
+  letter-spacing:.5px;
+  position:absolute;
+  right:10px;
+  z-index:1;
+}
+.online-toggle.on .toggle-txt{
+  color:var(--green);
+  right:auto;
+  left:10px
+}
+#top-nav.rain-mode .toggle-txt{
+  color:rgba(255,255,255,.7);
+}
+#top-nav.rain-mode .online-toggle.on .toggle-txt{
+  color:white;
+}
+/* BOTTOM NAV */
+#bnav{position:fixed;bottom:0;left:0;right:0;background:var(--white);border-top:1.5px solid #e8ecef;height:calc(var(--bottom-h) + var(--safe-bot));padding-bottom:var(--safe-bot);display:flex;z-index:200;box-shadow:0 -6px 24px rgba(0,0,0,.1);}
+.nb{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;padding:8px 2px 10px;border:none;background:none;cursor:pointer;color:#9BA3B0;font-family:var(--font);font-size:10px;font-weight:800;transition:all .22s cubic-bezier(.34,1.56,.64,1);position:relative;text-transform:uppercase;letter-spacing:.3px;}
+.nb .ico{width:40px;height:40px;border-radius:14px;display:flex;align-items:center;justify-content:center;transition:all .28s cubic-bezier(.34,1.56,.64,1);flex-shrink:0;position:relative;}
+.nb .ico svg{width:22px;height:22px;stroke:#9BA3B0;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;transition:all .22s;}
+/* Orders - green */
+#nb-orders.on{color:#0C8B4A;}
+#nb-orders.on .ico{background:linear-gradient(135deg,#E6F7EE,#c8f0dc);transform:scale(1.12) translateY(-2px);box-shadow:0 6px 18px rgba(12,139,74,.28);}
+#nb-orders.on .ico svg{stroke:#0C8B4A;}
+/* History - indigo/purple */
+#nb-history.on{color:#5C6BC0;}
+#nb-history.on .ico{background:linear-gradient(135deg,#E8EAF6,#c5cae9);transform:scale(1.12) translateY(-2px);box-shadow:0 6px 18px rgba(92,107,192,.28);}
+#nb-history.on .ico svg{stroke:#5C6BC0;}
+/* Earnings - amber */
+#nb-earnings.on{color:#E5A800;}
+#nb-earnings.on .ico{background:linear-gradient(135deg,#FFF8E1,#ffe082);transform:scale(1.12) translateY(-2px);box-shadow:0 6px 18px rgba(229,168,0,.28);}
+#nb-earnings.on .ico svg{stroke:#E5A800;}
+/* Profile - rose/red */
+#nb-profile.on{color:#E53935;}
+#nb-profile.on .ico{background:linear-gradient(135deg,#FFEBEE,#ffcdd2);transform:scale(1.12) translateY(-2px);box-shadow:0 6px 18px rgba(229,57,53,.28);}
+#nb-profile.on .ico svg{stroke:#E53935;}
+.nbadge{position:absolute;top:-3px;right:-3px;background:linear-gradient(135deg,#f43b47,#e11d48);color:#fff;font-size:9px;font-weight:900;min-width:18px;height:18px;border-radius:9px;padding:0 4px;display:none;align-items:center;justify-content:center;border:2px solid var(--white);box-shadow:0 2px 8px rgba(244,59,71,.5);}
+.nbadge.on{display:flex;}
+/* PAGES */
+#pages{flex:1;overflow:hidden;position:relative}
+.page{position:absolute;inset:0;overflow-y:auto;display:none;padding-bottom:calc(var(--bottom-h) + var(--safe-bot) + 20px);}
+.page.on{display:block}
+/* INCENTIVE BANNERS */
+.inc-banner{margin:12px 16px 0;border-radius:var(--radius);padding:14px 16px;display:flex;align-items:center;gap:12px;position:relative;overflow:hidden;}
+.inc-banner.rain{background:linear-gradient(135deg,#0D47A1,#1565C0);color:white}
+.inc-banner.bonus{background:linear-gradient(135deg,#E65100,#F57C00);color:white}
+.inc-banner.streak{background:linear-gradient(135deg,var(--green2),var(--green));color:white}
+.inc-icon-big{font-size:32px;flex-shrink:0}
+.inc-body{flex:1}
+.inc-title{font-size:14px;font-weight:900;margin-bottom:2px}
+.inc-sub{font-size:12px;opacity:.85;font-weight:600;line-height:1.4}
+.inc-badge{background:rgba(255,255,255,.25);border-radius:20px;padding:3px 10px;font-size:11px;font-weight:800;margin-top:6px;display:inline-block}
+.inc-shimmer{position:absolute;top:0;left:-100%;width:60%;height:100%;background:linear-gradient(90deg,transparent,rgba(255,255,255,.15),transparent);animation:shimmer 2.5s infinite;}
+@keyframes shimmer{to{left:150%}}
+/* TODAY BAR */
+.today-bar{display:flex;align-items:center;justify-content:space-between;padding:10px 16px 8px;background:var(--white);border-bottom:1px solid var(--border);}
+.today-bar-label{font-size:11px;font-weight:800;color:var(--text3);text-transform:uppercase;letter-spacing:.6px}
+.today-bar-stats{display:flex;align-items:center;gap:12px}
+.tbs-item{text-align:center}
+.tbs-val{font-size:16px;font-weight:900;font-family:var(--mono)}
+.tbs-val.green{color:var(--green)}.tbs-val.yellow{color:var(--yellow-dark)}.tbs-val.blue{color:var(--blue)}
+.tbs-lbl{font-size:9px;font-weight:800;color:var(--text3);text-transform:uppercase;letter-spacing:.4px;margin-top:1px}
+.tbs-div{width:1px;height:28px;background:var(--border)}
+/* Live map */
+/* ── RAPIDO-STYLE LIVE TRACKING PANEL ── */
+#live-map-strip{margin:12px 16px 0;border-radius:var(--radius);overflow:hidden;display:none;border:1.5px solid rgba(12,139,74,.3);box-shadow:var(--shadow);}
+.map-frame{width:100%;height:210px;border:none;display:block}
+#rider-map-el{width:100%;height:210px;}
+
+/* ETA Banner — sits above map like Rapido's "Walk to pickup" blue bar */
+.eta-banner{background:linear-gradient(135deg,#1565C0,#1976D2);color:white;padding:9px 16px;display:flex;align-items:center;justify-content:space-between;gap:8px;}
+.eta-banner-label{font-size:11px;font-weight:800;letter-spacing:.5px;opacity:.9;text-transform:uppercase}
+.eta-banner-val{font-size:13px;font-weight:900;display:flex;align-items:center;gap:6px}
+.eta-banner.pickup{background:linear-gradient(135deg,#E65100,#F57C00)} /* orange = going to store */
+.eta-banner.deliver{background:linear-gradient(135deg,#1B5E20,#2E7D32)} /* green = delivering */
+
+/* ETA + Distance card below map */
+.delivery-info-card{background:var(--white);padding:12px 16px;border-top:1px solid var(--border);display:flex;align-items:stretch;gap:0;}
+.dic-block{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:4px 8px;}
+.dic-block+.dic-block{border-left:1px solid var(--border)}
+.dic-val{font-size:22px;font-weight:900;color:var(--text);font-family:var(--mono);line-height:1}
+.dic-val span{font-size:13px;font-weight:700;color:var(--text2)}
+.dic-label{font-size:10px;font-weight:800;color:var(--text3);text-transform:uppercase;letter-spacing:.6px;margin-top:3px}
+.dic-phase{font-size:10px;font-weight:700;padding:2px 8px;border-radius:20px;margin-top:4px;}
+.dic-phase.store{background:#FFF3E0;color:#E65100}
+.dic-phase.cust{background:#E8F5E9;color:#2E7D32}
+
+/* PIN display */
+.pin-strip{background:var(--bg);border-top:1px solid var(--border);padding:10px 16px;display:flex;align-items:center;justify-content:space-between;}
+.pin-label{font-size:11px;font-weight:800;color:var(--text2);text-transform:uppercase;letter-spacing:.6px}
+.pin-boxes{display:flex;gap:6px}
+.pin-box{width:34px;height:38px;background:var(--white);border:1.5px solid var(--border);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:900;font-family:var(--mono);color:var(--text);box-shadow:var(--shadow)}
+
+/* GPS status bar */
+.gps-status{background:var(--green-light);padding:8px 14px;display:flex;align-items:center;gap:8px;border-top:1px solid rgba(12,139,74,.2);}
+.gps-dot{width:8px;height:8px;border-radius:50%;background:var(--green);animation:blink 1.4s infinite;flex-shrink:0}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
+.gps-label{font-size:12px;font-weight:700;color:var(--green)}
+#gps-coords{margin-left:auto;font-size:11px;color:var(--text2);font-family:var(--mono)}
+.sec-hdr{display:flex;align-items:center;justify-content:space-between;padding:16px 16px 8px;}
+.sec-title{font-size:13px;font-weight:800;color:var(--text2);text-transform:uppercase;letter-spacing:.8px}
+.sec-count{font-size:12px;color:var(--text3);font-weight:700}
+.refresh-btn{width:32px;height:32px;background:var(--white);border:1px solid var(--border);border-radius:10px;display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--text2);font-size:13px;box-shadow:var(--shadow);}
+/* Order Card */
+.order-card{margin:0 16px 12px;background:var(--card);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;box-shadow:var(--shadow);}
+.order-card.active-delivery{border-color:rgba(12,139,74,.4);border-width:1.5px}
+.oc-live-map-slot{border-radius:12px 12px 0 0;overflow:hidden;margin:-1px -1px 0 -1px;}
+.oc-top{display:flex;align-items:center;justify-content:space-between;padding:12px 16px 10px;border-bottom:1px solid var(--border);}
+.oc-id{font-size:11px;font-weight:800;color:var(--text3);font-family:var(--mono);text-transform:uppercase;letter-spacing:.5px}
+.oc-status{font-size:11px;font-weight:800;padding:4px 10px;border-radius:20px;text-transform:uppercase;letter-spacing:.3px}
+.st-assigned{background:#FFF3E0;color:var(--orange)}
+.st-picked{background:var(--green-light);color:var(--green)}
+.oc-customer{padding:12px 16px;display:flex;align-items:center;gap:12px;border-bottom:1px solid var(--border);}
+.cust-ava{width:40px;height:40px;border-radius:50%;background:linear-gradient(135deg,var(--green),var(--green2));display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:800;color:white;flex-shrink:0;}
+.cust-name{font-size:14px;font-weight:800;color:var(--text)}
+.cust-phone{font-size:12px;color:var(--text2);font-weight:600;margin-top:2px}
+.oc-dist{margin:12px 16px;background:var(--bg);border-radius:var(--radius-sm);padding:12px 14px;display:flex;align-items:center;justify-content:space-between;}
+.dist-info{display:flex;align-items:center;gap:10px}
+.dist-icon{width:32px;height:32px;background:var(--green-light);border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:14px}
+.dist-val{font-size:14px;font-weight:800;color:var(--text)}
+.dist-sub{font-size:11px;color:var(--text2);font-weight:600;margin-top:1px}
+.dist-earn{text-align:right}
+.dist-earn-val{font-size:18px;font-weight:900;font-family:var(--mono);color:var(--green)}
+.dist-earn-sub{font-size:10px;color:var(--text2);font-weight:700;text-transform:uppercase;margin-top:1px}
+.oc-address{margin:0 16px 12px;background:var(--bg);border-radius:var(--radius-sm);padding:10px 14px;display:flex;gap:8px;align-items:flex-start;}
+.addr-dot{width:9px;height:9px;border-radius:50%;background:var(--red);flex-shrink:0;margin-top:4px}
+.addr-text{font-size:13px;color:var(--text);line-height:1.5;font-weight:600}
+.oc-items{margin:0 16px 12px;background:var(--bg);border-radius:var(--radius-sm);overflow:hidden}
+.oc-items-hdr{display:flex;align-items:center;justify-content:space-between;padding:10px 14px;cursor:pointer}
+.items-title{font-size:11px;font-weight:800;color:var(--text2);text-transform:uppercase;letter-spacing:.5px}
+.items-toggle{display:flex;align-items:center;gap:6px}
+.items-count{font-size:11px;font-weight:700;color:var(--text3)}
+.items-chevron{width:12px;height:12px;color:var(--text3);transition:transform .2s;flex-shrink:0}
+.oc-items.open .items-chevron{transform:rotate(180deg)}
+.oc-items-body{display:none;padding:0 14px 10px}
+.oc-items.open .oc-items-body{display:block}
+.item-row{display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid var(--border);font-size:13px}
+.item-row:last-child{border-bottom:none}
+.item-name{color:var(--text);flex:1;font-weight:600}
+.item-qty{color:var(--text3);font-size:12px;font-weight:700;margin:0 10px}
+.item-amt{font-weight:800;color:var(--text)}
+.oc-collect{margin:0 16px 12px;background:#FFF8E1;border:1.5px solid #FFE082;border-radius:var(--radius-sm);padding:12px 14px;display:flex;align-items:center;justify-content:space-between;}
+.collect-label{font-size:12px;color:var(--yellow-dark);font-weight:700}
+.collect-amt{font-size:22px;font-weight:900;font-family:var(--mono);color:var(--yellow-dark)}
+.collect-sub{font-size:10px;color:var(--yellow-dark);margin-top:1px;font-weight:700;opacity:.8}
+.oc-actions{padding:0 14px 14px;display:flex;flex-direction:column;gap:8px}
+.action-row{display:flex;gap:8px}
+.btn-main{flex:1;padding:14px;border-radius:14px;font-size:14px;font-weight:800;border:none;cursor:pointer;font-family:var(--font);display:flex;align-items:center;justify-content:center;gap:8px;transition:.15s;text-transform:uppercase;letter-spacing:.3px;}
+.btn-main:active{transform:scale(.97)}
+.btn-pickup{background:var(--orange);color:white}
+.btn-deliver{background:linear-gradient(135deg,var(--green),var(--green2));color:white;box-shadow:0 4px 20px rgba(12,139,74,.35)}
+.btn-sm-action{flex:1;padding:11px;border-radius:12px;font-size:12px;font-weight:800;border:1.5px solid var(--border);cursor:pointer;font-family:var(--font);display:flex;align-items:center;justify-content:center;gap:5px;background:var(--white);color:var(--text);text-decoration:none;transition:.15s;text-transform:uppercase;letter-spacing:.3px;}
+.btn-sm-action:active{transform:scale(.97)}
+.btn-call{border-color:rgba(12,139,74,.3);color:var(--green)}
+.btn-navigate{border-color:rgba(21,101,192,.3);color:var(--blue)}
+.btn-whatsapp{border-color:rgba(37,211,102,.4);color:#128C7E}
+.offline-nudge{margin:16px;background:#FFF3E0;border:1.5px solid #FFCC80;border-radius:var(--radius);padding:16px;display:flex;align-items:center;gap:14px;}
+.nudge-icon{font-size:36px;flex-shrink:0}
+.nudge-body{flex:1}
+.nudge-title{font-size:15px;font-weight:900;color:var(--orange);margin-bottom:4px}
+.nudge-msg{font-size:13px;color:var(--text2);line-height:1.5;font-weight:600}
+.nudge-tip{margin:0 16px 12px;background:var(--green-light);border:1px solid rgba(12,139,74,.2);border-radius:var(--radius-sm);padding:10px 14px;font-size:12px;color:var(--green);font-weight:700;line-height:1.5;}
+.empty-state{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:60px 24px;text-align:center}
+.empty-icon{font-size:52px;margin-bottom:14px;opacity:.4}
+.empty-title{font-size:16px;font-weight:800;margin-bottom:6px;color:var(--text)}
+.empty-sub{font-size:13px;color:var(--text3);line-height:1.5;font-weight:600}
+/* HISTORY */
+.hist-week-hdr{margin:10px 16px 4px;background:var(--green-light);border:1px solid rgba(12,139,74,.2);border-radius:var(--radius-sm);padding:10px 14px;display:flex;align-items:center;justify-content:space-between;}
+.hist-week-label{font-size:11px;font-weight:800;color:var(--green);text-transform:uppercase;letter-spacing:.6px}
+.hist-week-stats{display:flex;gap:14px}
+.hist-week-stat{text-align:right}
+.hist-week-val{font-size:14px;font-weight:900;font-family:var(--mono);color:var(--green)}
+.hist-week-sub{font-size:10px;color:var(--text3);font-weight:700;text-transform:uppercase}
+.hist-day-hdr{display:flex;align-items:center;justify-content:space-between;padding:12px 16px 6px}
+.hist-day-label{font-size:12px;font-weight:800;color:var(--text2);text-transform:uppercase;letter-spacing:.6px}
+.hist-day-summary{display:flex;align-items:center;gap:10px}
+.hist-day-dels{font-size:11px;color:var(--text3);font-weight:700}
+.hist-day-earn{font-size:13px;font-weight:900;font-family:var(--mono);color:var(--green)}
+.hist-card{margin:0 16px 6px;background:var(--card);border:1px solid var(--border);border-radius:var(--radius-sm);padding:12px 14px;display:flex;align-items:center;gap:12px;box-shadow:var(--shadow);}
+.hist-icon{width:40px;height:40px;border-radius:12px;background:var(--green-light);display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0}
+.hist-info{flex:1}
+.hist-name{font-size:13px;font-weight:800;color:var(--text)}
+.hist-meta{font-size:11px;color:var(--text2);font-weight:600;margin-top:2px}
+.hist-earn{font-size:15px;font-weight:900;font-family:var(--mono);color:var(--green)}
+/* EARNINGS PAGE - two distinct sections */
+.earn-hero-main{margin:16px;background:linear-gradient(135deg,#1A237E 0%,#283593 100%);border-radius:var(--radius);padding:22px 20px;color:white;position:relative;overflow:hidden;}
+.earn-hero-main::before{content:'';position:absolute;top:-40px;right:-40px;width:150px;height:150px;border-radius:50%;background:rgba(255,255,255,.06)}
+.ehm-label{font-size:11px;opacity:.7;font-weight:800;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px}
+.ehm-val{font-size:44px;font-weight:900;font-family:var(--mono);letter-spacing:-2px;line-height:1}
+.ehm-val sup{font-size:20px;vertical-align:super;letter-spacing:0}
+.ehm-row{display:flex;gap:0;margin-top:14px;position:relative;z-index:1}
+.ehm-item{flex:1;padding:0 12px 0 0}
+.ehm-item-val{font-size:20px;font-weight:900;font-family:var(--mono)}
+.ehm-item-lbl{font-size:10px;opacity:.6;font-weight:700;text-transform:uppercase;letter-spacing:.4px;margin-top:2px}
+.ehm-div{width:1px;background:rgba(255,255,255,.2);margin-right:12px}
+.earn-time-card{margin:0 16px 12px;background:linear-gradient(135deg,#263238,#37474F);border-radius:var(--radius);padding:16px 20px;color:white;display:flex;align-items:center;gap:16px;}
+.etc-icon{font-size:36px;flex-shrink:0}
+.etc-body{flex:1}
+.etc-label{font-size:11px;opacity:.6;font-weight:700;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px}
+.etc-val{font-size:28px;font-weight:900;font-family:var(--mono)}
+.etc-sub{font-size:11px;opacity:.7;font-weight:600;margin-top:3px}
+.earn-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:0 16px 12px}
+.eg-card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius-sm);padding:16px;box-shadow:var(--shadow)}
+.eg-icon{font-size:22px;margin-bottom:8px}
+.eg-val{font-size:26px;font-weight:900;font-family:var(--mono);letter-spacing:-.5px}
+.eg-card.green .eg-val{color:var(--green)}.eg-card.yellow .eg-val{color:var(--yellow-dark)}
+.eg-card.orange .eg-val{color:var(--orange)}.eg-card.blue .eg-val{color:var(--blue)}
+.eg-lbl{font-size:10px;font-weight:800;color:var(--text2);text-transform:uppercase;letter-spacing:.4px;margin-top:4px}
+/* Incentives section in earnings */
+.earn-inc-section{margin:0 16px 12px}
+.earn-sec-title{font-size:12px;font-weight:800;color:var(--text2);text-transform:uppercase;letter-spacing:.8px;margin-bottom:8px}
+.inc-card{border-radius:var(--radius-sm);padding:14px;margin-bottom:8px;position:relative;overflow:hidden;}
+.inc-card.bonus15{background:linear-gradient(135deg,#E65100,#BF360C)}
+.inc-card.rain{background:linear-gradient(135deg,#0D47A1,#01579B)}
+.inc-card.extra{background:linear-gradient(135deg,var(--purple),#4A148C)}
+.inc-card-row{display:flex;align-items:center;gap:12px}
+.inc-card-icon{font-size:28px;flex-shrink:0}
+.inc-card-body{flex:1}
+.inc-card-title{font-size:14px;font-weight:900;color:white;margin-bottom:3px}
+.inc-card-sub{font-size:12px;color:rgba(255,255,255,.8);font-weight:600;line-height:1.4}
+.inc-card-badge{background:rgba(255,255,255,.2);border-radius:20px;padding:4px 12px;font-size:12px;font-weight:800;color:white;display:inline-block;margin-top:8px}
+.inc-progress{margin-top:10px}
+.inc-prog-row{display:flex;justify-content:space-between;margin-bottom:4px}
+.inc-prog-lbl{font-size:11px;color:rgba(255,255,255,.7);font-weight:700}
+.inc-prog-val{font-size:11px;color:white;font-weight:800}
+.inc-prog-bar{height:6px;background:rgba(255,255,255,.2);border-radius:4px;overflow:hidden}
+.inc-prog-fill{height:100%;border-radius:4px;background:rgba(255,255,255,.8);transition:width .5s}
+/* Rate Card */
+.rate-card{margin:0 16px 12px;background:var(--card);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;box-shadow:var(--shadow);}
+.rate-card-hdr{display:flex;align-items:center;gap:10px;padding:14px 16px 12px;border-bottom:1px solid var(--border);background:var(--green-light);}
+.rate-card-icon{width:36px;height:36px;border-radius:10px;background:var(--green);display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0}
+.rate-card-title{font-size:14px;font-weight:800;color:var(--green)}
+.rate-card-sub{font-size:11px;color:var(--text2);font-weight:600;margin-top:2px}
+.rate-rows{padding:6px 0}
+.rate-row{display:flex;align-items:center;justify-content:space-between;padding:9px 16px;border-bottom:1px solid var(--border)}
+.rate-row:last-child{border-bottom:none}
+.rate-dist{display:flex;align-items:center;gap:8px}
+.rate-dot{width:7px;height:7px;border-radius:50%;background:var(--green);flex-shrink:0}
+.rate-km{font-size:13px;font-weight:700;color:var(--text)}
+.rate-earn{font-size:14px;font-weight:900;font-family:var(--mono);color:var(--green);background:var(--green-light);padding:4px 12px;border-radius:20px}
+.rate-note{margin:0 16px 12px;background:#FFF8E1;border:1px solid #FFE082;border-radius:var(--radius-sm);padding:10px 14px;font-size:12px;color:var(--yellow-dark);font-weight:700;line-height:1.5;}
+/* PROFILE PAGE */
+.profile-hero{margin:16px;background:linear-gradient(135deg,#37474F 0%,#263238 100%);border-radius:var(--radius);padding:22px 20px;color:white;display:flex;align-items:center;gap:16px;}
+.profile-ava{width:70px;height:70px;border-radius:50%;background:linear-gradient(135deg,var(--orange),var(--red));display:flex;align-items:center;justify-content:center;font-size:28px;font-weight:900;border:3px solid rgba(255,255,255,.3);flex-shrink:0;}
+.profile-name{font-size:20px;font-weight:900}
+.profile-phone{font-size:12px;opacity:.6;font-weight:700;margin-top:3px}
+.profile-badge{display:inline-flex;align-items:center;gap:6px;background:rgba(255,255,255,.15);border-radius:20px;padding:5px 12px;font-size:11px;font-weight:800;margin-top:8px;}
+.pdot{width:7px;height:7px;border-radius:50%;background:var(--text3);flex-shrink:0}
+.stat-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;padding:0 16px 16px}
+.stat-card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius-sm);padding:14px 10px;text-align:center;box-shadow:var(--shadow)}
+.stat-val{font-size:20px;font-weight:900;font-family:var(--mono);margin-bottom:3px}
+.stat-lbl{font-size:10px;color:var(--text2);font-weight:800;text-transform:uppercase;letter-spacing:.4px}
+.menu-section-title{font-size:11px;font-weight:800;color:var(--text3);text-transform:uppercase;letter-spacing:.8px;margin:16px 16px 8px}
+.menu-group{border:1px solid var(--border);border-radius:var(--radius-sm);overflow:hidden;margin:0 16px;box-shadow:var(--shadow)}
+.menu-item{background:var(--card);display:flex;align-items:center;gap:14px;padding:14px 16px;cursor:pointer;transition:background .15s;}
+.menu-item+.menu-item{border-top:1px solid var(--border)}
+.menu-item:active{background:var(--bg)}
+.menu-icon{width:36px;height:36px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:17px;flex-shrink:0}
+.menu-text{flex:1}
+.menu-title{font-size:14px;font-weight:800;color:var(--text)}
+.menu-sub{font-size:12px;color:var(--text2);font-weight:600;margin-top:2px}
+.menu-arrow{color:var(--text3);font-size:16px}
+/* SAFETY / ROAD RULES PAGE */
+.safety-hero{margin:16px;background:linear-gradient(135deg,#B71C1C,#C62828);border-radius:var(--radius);padding:20px;color:white;text-align:center;}
+.safety-hero-icon{font-size:44px;margin-bottom:10px}
+.safety-hero-title{font-size:20px;font-weight:900;margin-bottom:6px}
+.safety-hero-sub{font-size:13px;opacity:.85;font-weight:600;line-height:1.5}
+.safety-rule{margin:0 16px 8px;background:var(--card);border:1px solid var(--border);border-radius:var(--radius-sm);padding:14px 16px;display:flex;align-items:flex-start;gap:12px;box-shadow:var(--shadow);}
+.safety-rule.highlight{border-color:var(--red);border-width:2px;background:#FFF5F5}
+.safety-rule.highlight .sr-icon{background:#FFEBEE}
+.sr-icon{width:40px;height:40px;border-radius:12px;background:var(--green-light);display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0}
+.sr-body{flex:1}
+.sr-title{font-size:14px;font-weight:800;color:var(--text);margin-bottom:3px}
+.sr-sub{font-size:12px;color:var(--text2);font-weight:600;line-height:1.5}
+.sr-key{font-size:11px;font-weight:800;color:var(--red);background:#FFEBEE;padding:3px 8px;border-radius:6px;display:inline-block;margin-top:5px}
+.terms-card{margin:0 16px 8px;background:var(--card);border:1px solid var(--border);border-radius:var(--radius-sm);padding:14px 16px;box-shadow:var(--shadow)}
+.tc-title{font-size:13px;font-weight:800;color:var(--text);margin-bottom:6px}
+.tc-body{font-size:12px;color:var(--text2);font-weight:600;line-height:1.6}
+/* INVITE PAGE */
+.invite-hero{margin:16px;background:linear-gradient(135deg,#1A237E,#283593);border-radius:var(--radius);padding:22px 20px;color:white;text-align:center;}
+.invite-hero-icon{font-size:52px;margin-bottom:10px}
+.invite-hero-title{font-size:22px;font-weight:900;margin-bottom:6px}
+.invite-hero-sub{font-size:13px;opacity:.85;font-weight:600;line-height:1.5}
+.invite-link-box{margin:0 16px 12px;background:var(--card);border:1.5px solid var(--green);border-radius:var(--radius-sm);padding:14px 16px;}
+.ilb-label{font-size:11px;font-weight:800;color:var(--green);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px}
+.ilb-url{font-size:13px;font-weight:700;color:var(--text);background:var(--bg);padding:10px 12px;border-radius:8px;font-family:var(--mono);word-break:break-all;margin-bottom:10px}
+.ilb-row{display:flex;gap:8px}
+.ilb-btn{flex:1;padding:11px;border-radius:10px;font-size:13px;font-weight:800;border:none;cursor:pointer;font-family:var(--font);display:flex;align-items:center;justify-content:center;gap:6px}
+.ilb-btn.copy{background:var(--green-light);color:var(--green)}
+.ilb-btn.wa{background:#25D366;color:white}
+.invite-note{margin:0 16px 12px;background:#FFF3E0;border:1.5px solid #FFCC80;border-radius:var(--radius-sm);padding:14px 16px;}
+.invite-note-title{font-size:13px;font-weight:800;color:var(--orange);margin-bottom:6px}
+.invite-note-body{font-size:12px;color:var(--text2);font-weight:600;line-height:1.6}
+/* POD MODAL */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:500;display:none;align-items:flex-end;justify-content:center}
+.modal-overlay.on{display:flex}
+.modal-sheet{background:var(--white);border-radius:20px 20px 0 0;width:100%;max-width:430px;padding:0 0 calc(16px + var(--safe-bot));max-height:90vh;overflow-y:auto;animation:slideUp .3s ease;}
+@keyframes slideUp{from{transform:translateY(60px);opacity:0}to{transform:translateY(0);opacity:1}}
+.modal-handle{width:40px;height:4px;background:var(--border);border-radius:4px;margin:14px auto}
+.modal-body{padding:0 20px}
+.modal-title{font-size:18px;font-weight:900;margin-bottom:4px;color:var(--text)}
+.modal-sub{font-size:13px;color:var(--text2);font-weight:600;margin-bottom:16px}
+.pod-photo-zone{width:100%;height:160px;background:var(--bg);border-radius:var(--radius-sm);border:2px dashed var(--border);display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;margin-bottom:14px;overflow:hidden;transition:.2s;}
+.pod-photo-zone:hover{border-color:var(--green);background:var(--green-light)}
+.cash-box{background:#FFF8E1;border:1.5px solid #FFE082;border-radius:var(--radius-sm);padding:14px;margin-bottom:14px}
+.cash-box-title{font-size:12px;font-weight:800;color:var(--yellow-dark);margin-bottom:4px}
+.cash-box-amt{font-size:26px;font-weight:900;font-family:var(--mono);color:var(--yellow-dark)}
+.cash-box-sub{font-size:11px;color:var(--yellow-dark);opacity:.7;margin-top:2px;font-weight:600}
+.checkbox-row{display:flex;align-items:center;gap:12px;background:var(--bg);border:1.5px solid var(--border);border-radius:var(--radius-sm);padding:14px;margin-bottom:16px;cursor:pointer;transition:all .2s ease;-webkit-touch-callout:none;-webkit-user-select:none;user-select:none;min-height:48px;-webkit-tap-highlight-color:rgba(0,0,0,.1)}
+.checkbox-row input[type="checkbox"]{width:20px;height:20px;cursor:pointer;accent-color:var(--green);min-width:20px;flex-shrink:0}
+.checkbox-row label{cursor:pointer;flex:1;-webkit-user-select:none;user-select:none}
+.checkbox-row input[type="checkbox"]:checked~label{color:var(--green);font-weight:800}
+.checkbox-row.checked{background:#F1F8F5;border-color:var(--green);border-width:2px}
+.checkbox-row:hover{border-color:var(--green);background:var(--green-light)}
+.checkbox-row input{width:20px;height:20px;accent-color:var(--green);cursor:pointer;flex-shrink:0}
+.checkbox-row label{font-size:14px;font-weight:700;cursor:pointer;color:var(--text)}
+.confirm-btn{width:100%;padding:16px;background:linear-gradient(135deg,var(--green),var(--green2));color:white;border:none;border-radius:14px;font-family:var(--font);font-size:15px;font-weight:800;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;box-shadow:0 4px 20px rgba(12,139,74,.4);transition:.15s;-webkit-appearance:none;-webkit-touch-callout:none;-webkit-user-select:none;user-select:none}\n.confirm-btn:not(:disabled):hover{transform:translateY(-2px);box-shadow:0 6px 24px rgba(12,139,74,.6)}\n.confirm-btn:disabled{opacity:.5;cursor:not-allowed;pointer-events:none}
+.confirm-btn:active{transform:scale(.98)}
+.confirm-btn:disabled{opacity:.5;cursor:not-allowed;transform:none;pointer-events:none}
+/* AVAILABLE ORDERS (Rapido-style) */
+.avail-banner{margin:10px 16px 0;background:linear-gradient(135deg,#1A237E,#283593);border-radius:14px;padding:12px 16px;display:flex;align-items:center;gap:10px;color:white;}
+.avail-pulse{width:10px;height:10px;border-radius:50%;background:#69F0AE;flex-shrink:0;animation:blink 1s infinite;}
+.avail-card{margin:0 16px 12px;background:var(--card);border:2px solid #1565C0;border-radius:var(--radius);overflow:hidden;box-shadow:0 4px 20px rgba(21,101,192,.2);animation:slideIn .3s ease;}
+@keyframes slideIn{from{opacity:0;transform:translateY(-8px)}to{opacity:1;transform:translateY(0)}}
+.avail-card-top{background:linear-gradient(135deg,#E3F2FD,#BBDEFB);padding:10px 14px;display:flex;align-items:center;justify-content:space-between;}
+.avail-new-badge{background:#1565C0;color:white;font-size:10px;font-weight:900;padding:3px 10px;border-radius:20px;animation:blink 1s infinite;}
+.btn-accept{width:100%;padding:14px;background:linear-gradient(135deg,#1565C0,#0D47A1);color:white;border:none;border-radius:14px;font-size:15px;font-weight:900;cursor:pointer;font-family:var(--font);display:flex;align-items:center;justify-content:center;gap:8px;box-shadow:0 4px 20px rgba(21,101,192,.4);transition:.15s;}
+.btn-accept:active{transform:scale(.97)}
+.btn-accept:disabled{opacity:.5;cursor:not-allowed;transform:none}
+#rain-banner-top{
+  display:none !important;
+}
+@keyframes rainSlideIn{from{opacity:0;transform:translateY(-10px)}to{opacity:1;transform:translateY(0)}}
+.rain-drops{display:none}
+.rain-drop{display:none}
+/* TOAST */
+#toast{
+  position:fixed;
+  top:calc(var(--safe-top) + 12px);
+  left:50%;
+  transform:translateX(-50%) translateY(-120px) scale(.85);
+  background:#1a1a1a;
+  color:white;
+  border-radius:30px;
+  padding:12px 22px;
+  font-size:13px;
+  font-weight:700;
+  white-space:nowrap;
+  z-index:9999;
+  transition:transform .4s cubic-bezier(.34,1.56,.64,1), opacity .3s ease;
+  box-shadow:0 8px 32px rgba(0,0,0,.35);
+  max-width:88vw;
+  text-align:center;
+  opacity:0;
+  pointer-events:none;
+  display:flex;
+  align-items:center;
+  gap:8px;
+}
+#toast.on{
+  transform:translateX(-50%) translateY(0) scale(1);
+  opacity:1;
+  pointer-events:auto;
+}
+#toast.success{background:linear-gradient(135deg,#0C8B4A,#0A6B38);}
+#toast.error{background:linear-gradient(135deg,#E53935,#b71c1c);}
+#toast.info{background:linear-gradient(135deg,#1565C0,#0D47A1);}
+.spinner{width:28px;height:28px;border:3px solid var(--border);border-top-color:var(--green);border-radius:50%;animation:spin 1s linear infinite;margin:40px auto;display:block;}
+@keyframes spin{to{transform:rotate(360deg)}}
+.hidden-data{display:none!important}
+
+/* ── MODERN PWA INSTALL BANNER (RIDER) ── */
+#pwa-install-banner{
+  position:fixed;bottom:0;left:0;right:0;z-index:9998;
+  background:#fff;
+  border-radius:24px 24px 0 0;
+  box-shadow:0 -4px 40px rgba(0,0,0,.18);
+  display:none;flex-direction:column;
+  padding:0 0 calc(env(safe-area-inset-bottom,0px)+8px);
+  transform:translateY(100%);
+  transition:transform .4s cubic-bezier(.34,1.56,.64,1);
+}
+#pwa-install-banner.show{display:flex;transform:translateY(0)}
+#pwa-install-banner .pwa-handle{width:40px;height:4px;border-radius:2px;background:#e5e7eb;margin:14px auto 0}
+#pwa-install-banner .pwa-body{display:flex;align-items:center;gap:14px;padding:18px 20px 14px}
+#pwa-install-banner .pwa-app-icon{
+  width:60px;height:60px;border-radius:16px;flex-shrink:0;
+  background:linear-gradient(135deg,#0C8B4A,#064d28);
+  display:flex;align-items:center;justify-content:center;font-size:32px;
+  box-shadow:0 4px 16px rgba(12,139,74,.3);
+}
+#pwa-install-banner .pwa-info{flex:1;min-width:0}
+#pwa-install-banner .pwa-title{font-size:16px;font-weight:900;color:#111827;line-height:1.2}
+#pwa-install-banner .pwa-sub{font-size:12px;color:#6b7280;margin-top:3px;font-weight:500}
+#pwa-install-banner .pwa-badges{display:flex;gap:5px;margin-top:5px;flex-wrap:wrap}
+#pwa-install-banner .pwa-badge{font-size:10px;font-weight:700;padding:2px 8px;border-radius:20px}
+#pwa-install-banner .pwa-badge.earn{background:#fef3c7;color:#92400e}
+#pwa-install-banner .pwa-badge.fast{background:#dcfce7;color:#166534}
+#pwa-install-banner .pwa-badge.notif{background:#dbeafe;color:#1e40af}
+#pwa-install-banner .pwa-actions{display:flex;gap:10px;padding:0 20px 10px}
+#pwa-install-banner .pwa-btn-install{
+  flex:1;padding:14px;border:none;border-radius:14px;
+  background:linear-gradient(135deg,#0C8B4A,#064d28);
+  color:#fff;font-size:15px;font-weight:800;cursor:pointer;
+  box-shadow:0 4px 20px rgba(12,139,74,.35);
+  transition:all .15s;font-family:inherit;
+}
+#pwa-install-banner .pwa-btn-install:active{transform:scale(.97);opacity:.92}
+#pwa-install-banner .pwa-btn-dismiss{
+  padding:14px 18px;border:1.5px solid #e5e7eb;border-radius:14px;
+  background:#fff;color:#6b7280;font-size:13px;font-weight:700;cursor:pointer;
+  transition:all .15s;font-family:inherit;
+}
+/* iOS install tip */
+#pwa-ios-tip{padding:0 20px 10px;}
+#pwa-ios-tip .ios-tip-inner{
+  background:#f0fdf4;border:1.5px solid #bbf7d0;border-radius:14px;
+  padding:12px 14px;display:flex;align-items:flex-start;gap:10px;
+}
+#pwa-ios-tip .ios-tip-text{font-size:12px;color:#166534;line-height:1.5;font-weight:600}
+#pwa-ios-tip .ios-tip-text b{display:block;font-size:13px;margin-bottom:2px}
+
+</style>
+<!-- Leaflet Map -->
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+</head>
+<body>
+
+<!-- MODERN PWA INSTALL BANNER (RIDER) -->
+<div id="pwa-install-banner">
+  <div class="pwa-handle"></div>
+  <div class="pwa-body">
+    <div class="pwa-app-icon">🛵</div>
+    <div class="pwa-info">
+      <div class="pwa-title">Nekta Rider App</div>
+      <div class="pwa-sub">Install for faster order access</div>
+      <div class="pwa-badges">
+        <span class="pwa-badge earn">💰 Earn more</span>
+        <span class="pwa-badge fast">⚡ Instant alerts</span>
+        <span class="pwa-badge notif">🔔 Notifications</span>
+      </div>
+    </div>
+  </div>
+  <div id="pwa-ios-tip" style="display:none">
+    <div class="ios-tip-inner">
+      <span style="font-size:20px;flex-shrink:0;margin-top:2px">📲</span>
+      <div class="ios-tip-text">
+        <b>Install on iPhone / iPad</b>
+        Tap the <b>Share</b> button (□↑) in Safari, then choose <b>"Add to Home Screen"</b>
+      </div>
+    </div>
+  </div>
+  <div class="pwa-actions">
+    <button class="pwa-btn-install" onclick="window.installPWA && window.installPWA()">📲 Add to Home Screen</button>
+    <button class="pwa-btn-dismiss" onclick="window.dismissPWABanner && window.dismissPWABanner()">Not now</button>
+  </div>
+</div>
+
+<!-- SPLASH -->
+<div id="splash-screen">
+  <dotlottie-wc
+    src="https://lottie.host/d8b07253-a045-49f4-a5c0-9d26aafbc8cf/ODLW4zqdpX.lottie"
+    style="width: 350px; height: 350px; margin: 0 auto;"
+    autoplay
+    loop
+  ></dotlottie-wc>
+
+  <div style="text-align:center;margin-top:12px">
+    <span style="font-family:'Nunito',sans-serif;font-size:52px;font-weight:900;color:#fff;letter-spacing:-1.5px;line-height:1;display:block">Nekta</span>
+    <span style="font-family:'Dancing Script',cursive;font-size:22px;font-weight:700;color:#FF6B35;letter-spacing:1.5px;text-shadow:0 1px 8px rgba(255,107,53,.6);margin-top:-2px;line-height:1;display:block">Rider</span>
+    <span style="display:block;width:52px;height:1.5px;background:linear-gradient(90deg,transparent,#FF6B35,transparent);margin:4px auto 0;border-radius:2px"></span>
+  </div>
+</div>
+
+<!-- LOGIN -->
+<div id="login-screen">
+  <div class="login-logo">&#128666;</div>
+  <div class="login-brand">Nekta<span>.</span></div>
+  <div class="login-sub">Kothagudem's fastest delivery</div>
+  <div class="inp-wrap">
+    <label class="inp-label">Phone Number</label>
+    <input class="inp-field" type="tel" id="login-phone" placeholder="10-digit mobile number" maxlength="10" inputmode="numeric" onkeydown="if(event.key==='Enter')doLogin()">
+  </div>
+  <div class="inp-wrap">
+    <label class="inp-label">Your Name</label>
+    <input class="inp-field" type="text" id="login-name" placeholder="Full name" onkeydown="if(event.key==='Enter')doLogin()">
+  </div>
+  <button class="login-btn" id="login-btn" onclick="doLogin()">Continue &#8594;</button>
+  <div class="login-err" id="login-err"></div>
+  <div class="login-invite-box">
+    <div class="login-invite-title">&#128683; Not registered yet?</div>
+    <div class="login-invite-sub">You can't start delivering without registration. Contact Nekta Rider Support on WhatsApp to get registered and start earning!</div>
+    <button class="login-wa-btn" onclick="window.open('https://wa.me/919398448938?text=Hi%2C+I+want+to+register+as+a+Nekta+rider+in+Kothagudem','_blank')">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg> Contact Nekta Support
+    </button>
+  </div>
+  <div style="width:100%;max-width:340px;margin-top:12px;text-align:center">
+    <p style="font-size:11px;color:var(--text3);margin-bottom:8px;font-weight:600">Are you a shop owner?</p>
+    <button onclick="window.location.href='seller.html'" style="width:100%;padding:12px;background:var(--bg);border:1.5px solid var(--border);border-radius:12px;font-family:var(--font);font-size:13px;font-weight:700;cursor:pointer;color:var(--text2);display:flex;align-items:center;justify-content:center;gap:8px">
+      🏪 Open Seller Dashboard
+    </button>
+  </div>
+</div>
+
+<!-- APP -->
+<div id="app">
+
+  <!-- TOP NAV - Big Zepto-Style Header with Clouds -->
+  <nav id="top-nav">
+    <!-- Rain animation drops -->
+    <div id="header-rain-drops"></div>
+    
+    <!-- Cloud decoration -->
+    <div id="header-clouds">
+      <div class="cloud"></div>
+      <div class="cloud"></div>
+      <div class="cloud"></div>
+    </div>
+    
+    <!-- Header content -->
+    <div class="tn-content">
+      <!-- Left: Location -->
+      <div class="tn-location">
+        <div class="tn-location-badge">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color:var(--green)">
+            <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
+            <circle cx="12" cy="10" r="3"></circle>
+          </svg>
+          <span class="tn-location-text">Kothagudem</span>
+        </div>
+        <div class="tn-greeting">
+          <div class="tn-greeting-text">Hello, Rider! 👋</div>
+          <div class="tn-greeting-name" id="rider-name-big">Welcome</div>
+        </div>
+      </div>
+      
+      <!-- Right: Controls -->
+      <div class="tn-controls">
+        <!-- Online Timer -->
+        <div class="tn-time-chip">
+          <span style="font-size:11px">⏱️</span>
+          <span class="tn-time-val" id="online-timer">0:00</span>
+        </div>
+        
+        <!-- Online Toggle -->
+        <div class="online-toggle" id="online-toggle" onclick="toggleOnline()">
+          <div class="toggle-dot"></div>
+          <span class="toggle-txt" id="toggle-txt">Offline</span>
+        </div>
+      </div>
+    </div>
+  </nav>
+
+  <!-- PAGES -->
+  <div id="pages">
+
+    <!-- ORDERS PAGE -->
+    <div class="page on" id="page-orders">
+      <div class="today-bar">
+        <span class="today-bar-label">Today</span>
+        <div class="today-bar-stats">
+          <div class="tbs-item">
+            <div class="tbs-val green" id="today-earn-disp">&#8377;0</div>
+            <div class="tbs-lbl">Earned</div>
+          </div>
+          <div class="tbs-div"></div>
+          <div class="tbs-item">
+            <div class="tbs-val yellow" id="today-dels-disp">0</div>
+            <div class="tbs-lbl">Delivered</div>
+          </div>
+          <div class="tbs-div"></div>
+          <div class="tbs-item">
+            <div class="tbs-val blue" id="today-time-disp">0h</div>
+            <div class="tbs-lbl">Online</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- hidden sync -->
+      <span class="hidden-data" id="earn-today">&#8377;0</span>
+      <span class="hidden-data" id="earn-deliveries">0</span>
+      <span class="hidden-data" id="earn-week">&#8377;0</span>
+      <span class="hidden-data" id="hdr-name"></span>
+      <span class="hidden-data" id="hdr-phone"></span>
+
+      <!-- Rain Banner (shown when rain bonus active) -->
+      <div id="rain-banner-top">
+        <div class="rain-drops" id="rain-drops-top"></div>
+        <div class="rain-banner-row">
+          <div class="rain-banner-icon">&#127783;</div>
+          <div class="rain-banner-body">
+            <div class="rain-banner-title">Raining Outside! Extra Earnings Active</div>
+            <div class="rain-banner-sub">Normal &#8377;20 + Rain Bonus &#8377;10 = <strong>&#8377;30 minimum</strong> per delivery</div>
+          </div>
+          <div class="rain-banner-badge">+₹10/order</div>
+        </div>
+      </div>
+
+      <!-- Incentive banners (dynamic) -->
+      <div id="incentive-banners"></div>
+
+      <!-- Live GPS Tracking Panel — embedded inside active order card via JS -->
+      <div id="live-map-strip" style="display:none">
+        <div class="eta-banner pickup" id="rider-eta-banner">
+          <div>
+            <div class="eta-banner-label" id="rider-phase-label">&#x1F3EA; Heading to Store</div>
+            <div class="eta-banner-val" id="rider-eta-val">Calculating route&#8230;</div>
+          </div>
+          <div style="text-align:right;flex-shrink:0">
+            <div style="font-size:10px;opacity:.8;font-weight:700">DISTANCE</div>
+            <div style="font-size:16px;font-weight:900;font-family:var(--mono)" id="rider-dist-val">--</div>
+          </div>
+        </div>
+        <div id="rider-map-el" style="width:100%;height:220px;min-height:220px;-webkit-overflow-scrolling:touch"></div>
+        <div class="delivery-info-card">
+          <div class="dic-block">
+            <div class="dic-val" id="dic-eta">--<span> min</span></div>
+            <div class="dic-label">ETA</div>
+            <div class="dic-phase store" id="dic-phase">To Store</div>
+          </div>
+          <div class="dic-block">
+            <div class="dic-val" id="dic-dist">--<span> km</span></div>
+            <div class="dic-label">Distance</div>
+            <div class="dic-phase store" id="dic-dist-phase">Remaining</div>
+          </div>
+          <div class="dic-block">
+            <div class="dic-val" id="dic-earn">--</div>
+            <div class="dic-label">&#x20B9; Earnings</div>
+            <div class="dic-phase cust" id="dic-earn-lbl">This order</div>
+          </div>
+        </div>
+        <div class="gps-status">
+          <div class="gps-dot"></div>
+          <span class="gps-label" id="gps-label-text">Live GPS Active</span>
+          <span id="gps-coords"></span>
+        </div>
+      </div>
+
+      <!-- Available Orders (Rapido-style — all online riders see these) -->
+      <div id="avail-section" style="display:none">
+        <div class="avail-banner">
+          <div class="avail-pulse"></div>
+          <div style="flex:1">
+            <div style="font-size:13px;font-weight:900">New Orders Available!</div>
+            <div style="font-size:11px;opacity:.8">Tap Accept to take an order</div>
+          </div>
+          <span id="avail-count" style="background:rgba(255,255,255,.2);border-radius:20px;padding:3px 10px;font-size:12px;font-weight:800">0</span>
+        </div>
+        <div id="avail-list" style="margin-top:8px"></div>
+      </div>
+
+      <div class="sec-hdr">
+        <span class="sec-title" id="my-orders-title">My Active Order</span>
+        <div style="display:flex;align-items:center;gap:8px">
+          <span class="sec-count" id="orders-count"></span>
+          <div class="refresh-btn" onclick="loadOrders()"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 11-2.12-9.36L23 10"/></svg></div>
+        </div>
+      </div>
+      <div id="orders-list"><div class="spinner"></div></div>
+    </div>
+
+    <!-- HISTORY PAGE -->
+    <div class="page" id="page-history">
+      <div class="sec-hdr" style="padding-top:20px">
+        <span class="sec-title">Delivery History</span>
+        <span class="sec-count" id="hist-count"></span>
+      </div>
+      <div id="history-list"><div class="spinner"></div></div>
+    </div>
+
+    <!-- EARNINGS PAGE -->
+    <div class="page" id="page-earnings">
+      <!-- Section 1: Weekly hero (blue/navy) -->
+      <div class="earn-hero-main">
+        <div style="position:relative;z-index:1">
+          <div class="ehm-label">This Week's Earnings</div>
+          <div class="ehm-val"><sup>&#8377;</sup><span id="earn-hero-total">0</span></div>
+        </div>
+        <div class="ehm-row" style="position:relative;z-index:1">
+          <div class="ehm-item">
+            <div class="ehm-item-val" id="earn2-today">&#8377;0</div>
+            <div class="ehm-item-lbl">Today</div>
+          </div>
+          <div class="ehm-div"></div>
+          <div class="ehm-item">
+            <div class="ehm-item-val" id="earn2-week">&#8377;0</div>
+            <div class="ehm-item-lbl">This Week</div>
+          </div>
+          <div class="ehm-div"></div>
+          <div class="ehm-item">
+            <div class="ehm-item-val" id="earn2-today-dels">0</div>
+            <div class="ehm-item-lbl">Today Dels</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Section 2: Online time card (charcoal) — different design -->
+      <div class="earn-time-card">
+        <div class="etc-icon">&#9201;&#65039;</div>
+        <div class="etc-body">
+          <div class="etc-label">Today's Online Time</div>
+          <div class="etc-val" id="earn-online-time">0h 0m</div>
+          <div class="etc-sub">Keep going &ndash; more hours = more orders!</div>
+        </div>
+        <div style="text-align:right">
+          <div style="font-size:11px;color:rgba(255,255,255,.5);font-weight:700;text-transform:uppercase;margin-bottom:4px">Avg/hr</div>
+          <div style="font-size:18px;font-weight:900;font-family:var(--mono);color:#80CBC4" id="earn-per-hr">&#8377;0</div>
+        </div>
+      </div>
+
+      <!-- Section 3: Stats grid (cards — light) -->
+      <div class="earn-grid">
+        <div class="eg-card green">
+          <div class="eg-icon">&#9728;&#65039;</div>
+          <div class="eg-val" id="earn2-today-big">&#8377;0</div>
+          <div class="eg-lbl">Today's Earnings</div>
+        </div>
+        <div class="eg-card yellow">
+          <div class="eg-icon">&#128757;</div>
+          <div class="eg-val" id="earn2-today-dels-big">0</div>
+          <div class="eg-lbl">Today's Deliveries</div>
+        </div>
+        <div class="eg-card orange">
+          <div class="eg-icon">&#128197;</div>
+          <div class="eg-val" id="earn2-week-big">&#8377;0</div>
+          <div class="eg-lbl">Weekly Earnings</div>
+        </div>
+        <div class="eg-card blue">
+          <div class="eg-icon">&#128230;</div>
+          <div class="eg-val" id="earn2-week-dels">0</div>
+          <div class="eg-lbl">Weekly Deliveries</div>
+        </div>
+      </div>
+
+      <!-- Section 4: Active Incentives -->
+      <div class="earn-inc-section">
+        <div class="earn-sec-title">&#127942; Active Incentives</div>
+
+        <div class="inc-card bonus15">
+          <div class="inc-shimmer"></div>
+          <div class="inc-card-row">
+            <div class="inc-card-icon">&#127942;</div>
+            <div class="inc-card-body">
+              <div class="inc-card-title">15 Orders Bonus</div>
+              <div class="inc-card-sub">Complete 15 deliveries today and earn an extra &#8377;300 from Nekta!</div>
+            </div>
+          </div>
+          <div class="inc-card-badge" id="bonus15-badge">0 / 15 orders</div>
+          <div class="inc-progress">
+            <div class="inc-prog-row">
+              <span class="inc-prog-lbl">Progress</span>
+              <span class="inc-prog-val" id="bonus15-pct">0%</span>
+            </div>
+            <div class="inc-prog-bar"><div class="inc-prog-fill" id="bonus15-fill" style="width:0%"></div></div>
+          </div>
+        </div>
+
+        <div class="inc-card rain">
+          <div class="inc-shimmer"></div>
+          <div class="inc-card-row">
+            <div class="inc-card-icon">&#127783;</div>
+            <div class="inc-card-body">
+              <div class="inc-card-title">Rain Incentive</div>
+              <div class="inc-card-sub">During heavy rain, earn an extra <strong style="color:#90CAF9">+₹10 per delivery</strong> — like Zepto & Blinkit!</div>
+            </div>
+          </div>
+          <div class="inc-card-badge" id="rain-badge">Currently Inactive</div>
+        </div>
+
+        <div class="inc-card extra">
+          <div class="inc-shimmer"></div>
+          <div class="inc-card-row">
+            <div class="inc-card-icon">&#9889;</div>
+            <div class="inc-card-body">
+              <div class="inc-card-title">Extra Hours Bonus</div>
+              <div class="inc-card-sub">Stay online for 8+ hours and earn an extra <strong style="color:#CE93D8">+₹200 bonus</strong> from Nekta!</div>
+            </div>
+          </div>
+          <div class="inc-card-badge" id="hours-badge">0h / 8h online today</div>
+          <div class="inc-progress">
+            <div class="inc-prog-row">
+              <span class="inc-prog-lbl">Hours Online Today</span>
+              <span class="inc-prog-val" id="hours-pct">0%</span>
+            </div>
+            <div class="inc-prog-bar"><div class="inc-prog-fill" id="hours-fill" style="width:0%"></div></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Rate card -->
+      <div class="rate-card">
+        <div class="rate-card-hdr">
+          <div class="rate-card-icon">&#128176;</div>
+          <div>
+            <div class="rate-card-title">Your Earnings Per Delivery</div>
+            <div class="rate-card-sub" id="rate-card-sub">Distance from store &ndash; customer</div>
+          </div>
+        </div>
+        <div id="rain-rate-note" style="display:none;background:linear-gradient(135deg,#0D47A1,#1565C0);color:white;padding:10px 16px;font-size:12px;font-weight:700;display:flex;align-items:center;gap:8px">
+          <span>&#127783;</span><span>Rain Bonus Active! +&#8377;10 added to every delivery below</span>
+        </div>
+        <div class="rate-rows" id="rate-rows-body">
+          <div class="rate-row"><div class="rate-dist"><div class="rate-dot"></div><span class="rate-km">0 &ndash; 1 km</span></div><span class="rate-earn" id="rate-0">&#8377;20</span></div>
+          <div class="rate-row"><div class="rate-dist"><div class="rate-dot"></div><span class="rate-km">1 &ndash; 2 km</span></div><span class="rate-earn" id="rate-1">&#8377;25</span></div>
+          <div class="rate-row"><div class="rate-dist"><div class="rate-dot"></div><span class="rate-km">2 &ndash; 3 km</span></div><span class="rate-earn" id="rate-2">&#8377;30</span></div>
+          <div class="rate-row"><div class="rate-dist"><div class="rate-dot"></div><span class="rate-km">3 &ndash; 4 km</span></div><span class="rate-earn" id="rate-3">&#8377;35</span></div>
+          <div class="rate-row"><div class="rate-dist"><div class="rate-dot"></div><span class="rate-km">4 &ndash; 5 km</span></div><span class="rate-earn" id="rate-4">&#8377;40</span></div>
+          <div class="rate-row"><div class="rate-dist"><div class="rate-dot"></div><span class="rate-km">5 &ndash; 6 km</span></div><span class="rate-earn" id="rate-5">&#8377;50</span></div>
+          <div class="rate-row"><div class="rate-dist"><div class="rate-dot"></div><span class="rate-km">6 &ndash; 8 km</span></div><span class="rate-earn" id="rate-6">&#8377;60</span></div>
+          <div class="rate-row"><div class="rate-dist"><div class="rate-dot"></div><span class="rate-km">8 &ndash; 10 km</span></div><span class="rate-earn" id="rate-7">&#8377;80</span></div>
+        </div>
+      </div>
+      <div class="rate-note" id="rate-note-bottom">&#8377; You earn the <strong>full delivery charge</strong> — 100% goes to you!</div>
+    </div>
+
+    <!-- PROFILE PAGE -->
+    <div class="page" id="page-profile">
+      <div class="profile-hero">
+        <div class="profile-ava" id="profile-ava">R</div>
+        <div>
+          <div class="profile-name" id="profile-name">Rider</div>
+          <div class="profile-phone" id="profile-phone"></div>
+          <div class="profile-badge">
+            <div class="pdot" id="profile-status-dot"></div>
+            <span id="profile-status-txt">Offline</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="stat-grid">
+        <div class="stat-card">
+          <div class="stat-val" style="color:var(--green)" id="stat-today">&#8377;0</div>
+          <div class="stat-lbl">Today</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-val" style="color:var(--yellow-dark)" id="stat-deliveries">0</div>
+          <div class="stat-lbl">Delivered</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-val" style="color:var(--orange)" id="stat-week">&#8377;0</div>
+          <div class="stat-lbl">This Week</div>
+        </div>
+      </div>
+
+      <div class="menu-section-title">Quick Actions</div>
+      <div class="menu-group">
+        <div class="menu-item" onclick="switchTab('invite','nb-profile')">
+          <div class="menu-icon" style="background:#E3F2FD">&#128101;</div>
+          <div class="menu-text">
+            <div class="menu-title">Invite a Rider</div>
+            <div class="menu-sub">Share Nekta Rider app link</div>
+          </div>
+          <div class="menu-arrow">&#8250;</div>
+        </div>
+        <div class="menu-item" onclick="switchTab('safety','nb-profile')">
+          <div class="menu-icon" style="background:#FFEBEE">&#128737;</div>
+          <div class="menu-text">
+            <div class="menu-title">Safety &amp; Road Rules</div>
+            <div class="menu-sub">Read before you ride</div>
+          </div>
+          <div class="menu-arrow">&#8250;</div>
+        </div>
+        <div class="menu-item" onclick="window.open('https://wa.me/919398448938?text=Hi+Nekta+Support%2C+I+need+help+as+a+rider','_blank')">
+          <div class="menu-icon" style="background:#E8F5E9">&#128172;</div>
+          <div class="menu-text">
+            <div class="menu-title">Rider Support</div>
+            <div class="menu-sub">Chat with us on WhatsApp</div>
+          </div>
+          <div class="menu-arrow">&#8250;</div>
+        </div>
+      </div>
+
+      <div class="menu-section-title">App</div>
+      <div class="menu-group">
+        <div class="menu-item" onclick="installPWA()">
+          <div class="menu-icon" style="background:#E6F7EE">&#128247;</div>
+          <div class="menu-text">
+            <div class="menu-title">Install Rider App</div>
+            <div class="menu-sub">Add to home screen</div>
+          </div>
+          <div class="menu-arrow">&#8250;</div>
+        </div>
+        <div class="menu-item" onclick="doLogout()">
+          <div class="menu-icon" style="background:#FFEBEE">&#128275;</div>
+          <div class="menu-text">
+            <div class="menu-title">Sign Out</div>
+            <div class="menu-sub">Log out of your account</div>
+          </div>
+          <div class="menu-arrow">&#8250;</div>
+        </div>
+      </div>
+      <div style="height:16px"></div>
+    </div>
+
+    <!-- SAFETY PAGE -->
+    <div class="page" id="page-safety">
+      <div class="safety-hero">
+        <div class="safety-hero-icon">&#9875;</div>
+        <div class="safety-hero-title">Safety First, Always</div>
+        <div class="safety-hero-sub">At Nekta, your life matters more than any delivery. Read these rules carefully before every shift.</div>
+      </div>
+
+      <div class="safety-rule highlight">
+        <div class="sr-icon">&#9937;</div>
+        <div class="sr-body">
+          <div class="sr-title">Always Wear a Helmet</div>
+          <div class="sr-sub">No helmet = no delivery. This is non-negotiable. A helmet protects your life every single ride.</div>
+          <span class="sr-key">&#128683; MANDATORY</span>
+        </div>
+      </div>
+      <div class="safety-rule highlight">
+        <div class="sr-icon">&#128241;</div>
+        <div class="sr-body">
+          <div class="sr-title">No Phone While Riding</div>
+          <div class="sr-sub">Never use your phone while the bike is moving. Pull over safely to check orders or messages.</div>
+          <span class="sr-key">&#128683; MANDATORY</span>
+        </div>
+      </div>
+      <div class="safety-rule highlight">
+        <div class="sr-icon">&#127783;</div>
+        <div class="sr-body">
+          <div class="sr-title">Slow Down in Rain</div>
+          <div class="sr-sub">Wet roads are dangerous. Reduce speed by at least 30% during rain. Your safety beats speed.</div>
+          <span class="sr-key">&#128680; HIGH PRIORITY</span>
+        </div>
+      </div>
+      <div class="safety-rule">
+        <div class="sr-icon">&#128677;</div>
+        <div class="sr-body">
+          <div class="sr-title">Follow All Traffic Signals</div>
+          <div class="sr-sub">Red means stop &ndash; always. No order is worth risking your life at a signal.</div>
+        </div>
+      </div>
+      <div class="safety-rule">
+        <div class="sr-icon">&#128739;</div>
+        <div class="sr-body">
+          <div class="sr-title">Use the Left Lane</div>
+          <div class="sr-sub">Always ride in the left lane. Do not overtake from the left on highways or main roads.</div>
+        </div>
+      </div>
+      <div class="safety-rule">
+        <div class="sr-icon">&#127769;</div>
+        <div class="sr-body">
+          <div class="sr-title">Night Riding Caution</div>
+          <div class="sr-sub">Keep headlights on. Wear reflective gear if possible. Reduce speed at night by 20%.</div>
+        </div>
+      </div>
+      <div class="safety-rule">
+        <div class="sr-icon">&#128295;</div>
+        <div class="sr-body">
+          <div class="sr-title">Check Your Bike Daily</div>
+          <div class="sr-sub">Tyres, brakes, lights &ndash; check before every shift. A 2-minute check can save your life.</div>
+        </div>
+      </div>
+      <div class="safety-rule">
+        <div class="sr-icon">&#128564;</div>
+        <div class="sr-body">
+          <div class="sr-title">Don't Ride When Tired</div>
+          <div class="sr-sub">Fatigue is as dangerous as drunk driving. If you're tired, rest. Orders can wait, you can't.</div>
+        </div>
+      </div>
+
+      <div style="margin:8px 16px 0;font-size:11px;font-weight:800;color:var(--text3);text-transform:uppercase;letter-spacing:.8px;margin-bottom:8px">Terms &amp; Conditions</div>
+
+      <div class="terms-card">
+        <div class="tc-title">&#128196; Rider Agreement</div>
+        <div class="tc-body">By using the Nekta Rider app, you agree to the following:
+<br><br>&#8226; You are an independent delivery partner, not a Nekta employee.
+<br>&#8226; You are responsible for your own vehicle, fuel, and insurance.
+<br>&#8226; You must have a valid driving license and bike documents at all times.
+<br>&#8226; Earnings are based on completed deliveries only &ndash; cancelled orders earn &#8377;0.
+<br>&#8226; Nekta may deactivate accounts for misconduct, customer complaints, or safety violations.
+<br>&#8226; Cash collected from customers must be handed to the store owner promptly.
+<br>&#8226; Never misuse customer data &ndash; phone numbers are for delivery only.</div>
+      </div>
+      <div class="terms-card">
+        <div class="tc-title">&#11088; Incentive Terms</div>
+        <div class="tc-body">&#8226; 15-order bonus (&#8377;300) is credited within 24 hours of qualifying.
+<br>&#8226; Rain incentive (+₹10/order) is activated by admin only during heavy rain.
+<br>&#8226; Extra hours bonus (&#8377;200 for 8h online) is tracked automatically by the app.
+<br>&#8226; Incentives are non-transferable and cannot be exchanged for cash directly.
+<br>&#8226; Nekta reserves the right to modify incentive terms with 24h notice.</div>
+      </div>
+      <div style="height:8px"></div>
+    </div>
+
+    <!-- INVITE PAGE -->
+    <div class="page" id="page-invite">
+      <div class="invite-hero">
+        <div class="invite-hero-icon">&#127873;</div>
+        <div class="invite-hero-title">Invite a Rider</div>
+        <div class="invite-hero-sub">Share the Nekta Rider app with friends. More riders = faster deliveries = better for everyone!</div>
+      </div>
+
+      <div class="invite-link-box">
+        <div class="ilb-label">&#128279; Nekta Rider App Link</div>
+        <div class="ilb-url" id="invite-url">https://nektagrocery.netlify.app/rider.html</div>
+        <div class="ilb-row">
+          <button class="ilb-btn copy" onclick="copyInviteLink()">&#128203; Copy Link</button>
+          <button class="ilb-btn wa" onclick="shareInviteWhatsApp()"><svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg> Share on WA</button>
+        </div>
+      </div>
+
+      <div class="invite-note">
+        <div class="invite-note-title">&#9888; Important &ndash; Registration Required</div>
+        <div class="invite-note-body">New riders who open this link will see the login screen but <strong>cannot start delivering without registration</strong>. They must contact Nekta Rider Support on WhatsApp to get registered first.
+<br><br>This is to ensure only verified, trusted riders deliver for Nekta.</div>
+      </div>
+
+      <div style="margin:0 16px">
+        <button style="width:100%;padding:14px;background:#25D366;color:white;border:none;border-radius:var(--radius-sm);font-family:var(--font);font-size:14px;font-weight:800;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px" onclick="contactSupportForNewRider()">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg> New Rider? Contact Nekta Support
+        </button>
+      </div>
+      <div style="height:16px"></div>
+    </div>
+
+  </div><!-- /pages -->
+
+  <!-- BOTTOM NAV -->
+  <nav id="bnav">
+    <button class="nb on" id="nb-orders" onclick="switchTab('orders','nb-orders')">
+      <div class="ico">
+        <svg viewBox="0 0 24 24"><path d="M20 7H4a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2z"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/><line x1="12" y1="12" x2="12" y2="16"/><line x1="10" y1="14" x2="14" y2="14"/></svg>
+        <span class="nbadge" id="order-badge">0</span>
+      </div>
+      <span>Orders</span>
+    </button>
+    <button class="nb" id="nb-history" onclick="switchTab('history','nb-history')">
+      <div class="ico">
+        <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="8" y1="13" x2="16" y2="13"/><line x1="8" y1="17" x2="12" y2="17"/></svg>
+      </div>
+      <span>History</span>
+    </button>
+    <button class="nb" id="nb-earnings" onclick="switchTab('earnings','nb-earnings')">
+      <div class="ico">
+        <svg viewBox="0 0 24 24"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/><line x1="6" y1="15" x2="10" y2="15"/></svg>
+      </div>
+      <span>Earnings</span>
+    </button>
+    <button class="nb" id="nb-profile" onclick="switchTab('profile','nb-profile')">
+      <div class="ico">
+        <svg viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+      </div>
+      <span>Profile</span>
+    </button>
+  </nav>
+
+</div><!-- /app -->
+
+<!-- POD MODAL -->
+<div class="modal-overlay" id="pod-modal">
+  <div class="modal-sheet">
+    <div class="modal-handle"></div>
+    <div class="modal-body">
+      <div class="modal-title">&#128247; Proof of Delivery</div>
+      <div class="modal-sub">Take a photo &amp; confirm cash received</div>
+      <div class="pod-photo-zone" id="pod-photo-zone" onclick="document.getElementById('pod-cam').click()">
+        <div style="font-size:36px;margin-bottom:8px">&#128247;</div>
+        <div style="font-size:13px;font-weight:800;color:var(--text2)">Tap to take photo</div>
+        <div style="font-size:11px;color:var(--text3);margin-top:3px;font-weight:600">Camera opens automatically</div>
+      </div>
+      <input type="file" id="pod-cam" accept="image/*" capture="environment" style="display:none" onchange="podPhotoSelected(this)">
+      <div class="cash-box">
+        <div class="cash-box-title">&#128181; Collect Cash from Customer</div>
+        <div class="cash-box-amt" id="pod-collect-amt">&#8377;--</div>
+        <div class="cash-box-sub">Hand over products, collect payment</div>
+      </div>
+      <!-- Rain bonus line in POD -->
+      <div id="pod-rain-line" style="display:none;background:linear-gradient(135deg,#0D47A1,#1565C0);color:white;border-radius:10px;padding:10px 14px;margin-bottom:14px;font-size:12px;font-weight:800;align-items:center;gap:8px">
+        <span style="font-size:18px">&#127783;</span>
+        <span>&#127783; Rain Bonus +₹10 included in your earnings for this delivery!</span>
+      </div>
+      <!-- PIN Reference for Rider -->
+      <div id="pod-pin-reference" style="background:#FEF3C7;border-radius:12px;padding:12px 14px;margin-bottom:12px;border:2px solid #FBBF24;display:none">
+        <div style="font-size:11px;font-weight:800;color:#92400E;margin-bottom:6px">📌 PIN to Expect from Customer</div>
+        <div style="display:flex;gap:6px;justify-content:center">
+          <div style="width:44px;height:44px;background:#fff;border:2px solid #F59E0B;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:20px;font-weight:900;font-family:var(--mono);color:#92400E" id="pod-pin-ref-0">-</div>
+          <div style="width:44px;height:44px;background:#fff;border:2px solid #F59E0B;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:20px;font-weight:900;font-family:var(--mono);color:#92400E" id="pod-pin-ref-1">-</div>
+          <div style="width:44px;height:44px;background:#fff;border:2px solid #F59E0B;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:20px;font-weight:900;font-family:var(--mono);color:#92400E" id="pod-pin-ref-2">-</div>
+          <div style="width:44px;height:44px;background:#fff;border:2px solid #F59E0B;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:20px;font-weight:900;font-family:var(--mono);color:#92400E" id="pod-pin-ref-3">-</div>
+        </div>
+        <div style="font-size:10px;color:#92400E;margin-top:6px;font-weight:600;text-align:center">Ask customer to share this PIN with you</div>
+      </div>
+      <!-- PIN Verification -->
+      <div id="pod-pin-section" style="background:#E8F5FF;border-radius:12px;padding:12px 14px;margin-bottom:12px;border:1.5px solid #BFDBFE">
+        <div style="font-size:11px;font-weight:800;color:#1565C0;margin-bottom:8px">&#128272; Ask Customer for Delivery PIN</div>
+        <div style="display:flex;gap:8px;align-items:center">
+          <input type="number" id="pod-pin-input" maxlength="4" placeholder="Enter 4-digit PIN"
+            style="flex:1;border:2px solid #3B82F6;border-radius:10px;padding:10px 14px;font-size:18px;font-weight:900;text-align:center;font-family:'Nunito',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;color:#1565C0;outline:none;letter-spacing:4px;background:#fff;-webkit-appearance:none;-moz-appearance:textfield"
+            oninput="this.value=this.value.slice(0,4)" inputmode="numeric">
+          <button onclick="verifyDeliveryPIN()" style="background:#1565C0;color:#fff;border:none;border-radius:10px;padding:10px 16px;font-size:12px;font-weight:800;cursor:pointer;white-space:nowrap;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none" type="button">Verify PIN</button>
+        </div>
+        <div id="pod-pin-status" style="font-size:11px;margin-top:6px;font-weight:700;min-height:16px"></div>
+      </div>
+      <div class="checkbox-row" id="pod-cash-row" style="cursor:pointer;-webkit-touch-callout:none;-webkit-user-select:none;user-select:none;-webkit-tap-highlight-color:transparent;padding:16px;gap:14px;min-height:54px;background:#F8F9FA;border:2px solid #E0E0E0;transition:all .2s ease">
+        <input type="checkbox" id="pod-chk" style="cursor:pointer;width:22px;height:22px;min-width:22px;accent-color:var(--green);flex-shrink:0;margin:0;padding:0" tabindex="0">
+        <label for="pod-chk" style="cursor:pointer;flex:1;margin:0;font-weight:700;font-size:14px;display:flex;align-items:center;-webkit-user-select:none;user-select:none">✓ Cash received from customer</label>
+      </div>
+      <div style="font-size:11px;color:#666;margin:-10px 0 12px 0;padding:0 2px;font-weight:600;text-align:center">⚠️ Tap the box above to confirm you collected the payment</div>
+      <button class="confirm-btn" id="pod-confirm-btn" onclick="confirmDelivery()" disabled style="opacity:.5;pointer-events:auto;-webkit-touch-callout:none;-webkit-user-select:none;user-select:none" type="button">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg> Confirm Delivery
+      </button>
+      <div style="height:8px"></div>
+    </div>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div id="toast"></div>
+
+<!-- FIREBASE + SCRIPTS -->
+<script>
+  // Firebase API Key set by environment or .env file
+  window.__CONFIG = window.__CONFIG || {};
+</script>
+<script src="js/bcrypt.min.js"></script>
+<script src="js/config-loader.js"></script>
+<script src="js/firebase-app-compat.js"></script>
+<script src="js/firebase-firestore-compat.js"></script>
+<script src="js/firebase-auth-compat.js"></script>
+<script src="js/firebase-database-compat.js"></script>
+<script src="js/firebase-config.js"></script>
+<script src="js/admin-auth.js"></script>
+<script>
+'use strict';
+
+// -- STATE ----------------------------------------------
+let _phone='',_name='',_isOnline=false,_riderDoc=null,_orders=[],
+    _activePOD=null,_podPhoto=null,_riderW=null,_ordersUnsub=null,_toastTimer=null,
+    _todayDels=0,_weekDels=0,_todayEarn=0,_weekEarn=0,
+    _onlineStartTs=null,_totalOnlineSecs=0,_timerInterval=null,_rainActive=false;
+
+// -- WAIT FIREBASE --------------------------------------
+function waitDB(fn,t=0){
+  if(window.db&&window.firebaseReady){fn();return;}
+  if(t>40){fn();return;}
+  setTimeout(()=>waitDB(fn,t+1),300);
+}
+
+// -- TOAST ----------------------------------------------
+function toast(msg,type='info'){
+  const el=document.getElementById('toast');
+  const icons={success:'\u2705',error:'\u274c',info:'\u2139\ufe0f',warning:'\u26a0\ufe0f'};
+  el.innerHTML='<span style="font-size:15px;flex-shrink:0">'+(icons[type]||icons.info)+'</span><span>'+msg+'</span>';
+  el.className='on '+type;
+  clearTimeout(_toastTimer);
+  _toastTimer=setTimeout(()=>{el.className='';el.innerHTML='';},3000);
+}
+
+// -- ESC ------------------------------------------------
+function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+
+// -- DELIVERY CHARGE CALC ------------------------------
+function calcDist(lat,lng){
+  if(!lat||!lng)return null;
+  const R=6371,SLAT=window.STORE_LAT||17.549395259963312,SLNG=window.STORE_LNG||80.6274729902068;
+  const dLat=(lat-SLAT)*Math.PI/180,dLng=(lng-SLNG)*Math.PI/180;
+  const a=Math.sin(dLat/2)**2+Math.cos(SLAT*Math.PI/180)*Math.cos(lat*Math.PI/180)*Math.sin(dLng/2)**2;
+  return Math.round(R*2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a))*10)/10;
+}
+function calcDeliveryCharge(lat,lng){
+  const dist=calcDist(lat,lng);
+  if(!dist)return 20;
+  if(dist<=1)return 20;if(dist<=2)return 25;if(dist<=3)return 30;
+  if(dist<=4)return 35;if(dist<=5)return 40;if(dist<=6)return 50;
+  if(dist<=8)return 60;if(dist<=10)return 80;
+  return Math.round(80+(dist-10)*10);
+}
+
+// -- ONLINE TIMER --------------------------------------
+function startOnlineTimer(){
+  _onlineStartTs=Date.now();
+  const savedSecs=parseInt(localStorage.getItem('nk_online_secs_'+_phone)||'0');
+  _totalOnlineSecs=savedSecs;
+  clearInterval(_timerInterval);
+  _timerInterval=setInterval(()=>{
+    const elapsed=Math.floor((Date.now()-_onlineStartTs)/1000);
+    const total=_totalOnlineSecs+elapsed;
+    updateTimerUI(total);
+    // Save to RTDB every 60s
+    if(elapsed%60===0&&window.rtdb&&_phone){
+      window.rtdb.ref('riderOnlineTime/'+_phone).set({
+        totalSecs:total,date:new Date().toISOString().slice(0,10),ts:Date.now()
+      });
+      localStorage.setItem('nk_online_secs_'+_phone,String(total));
+    }
+    updateIncentiveUI(total);
+  },1000);
+}
+function stopOnlineTimer(){
+  if(_onlineStartTs){
+    const elapsed=Math.floor((Date.now()-_onlineStartTs)/1000);
+    _totalOnlineSecs+=elapsed;
+    localStorage.setItem('nk_online_secs_'+_phone,String(_totalOnlineSecs));
+    if(window.rtdb&&_phone){
+      window.rtdb.ref('riderOnlineTime/'+_phone).set({
+        totalSecs:_totalOnlineSecs,date:new Date().toISOString().slice(0,10),ts:Date.now()
+      });
+      // Also save to Firestore for dashboard
+      if(window.db)window.db.collection('riders').where('phone','==',_phone).limit(1).get()
+        .then(s=>{if(!s.empty)s.docs[0].ref.update({todayOnlineSecs:_totalOnlineSecs});})
+        .catch(()=>{});
+    }
+  }
+  clearInterval(_timerInterval);
+  _timerInterval=null;
+  _onlineStartTs=null;
+  updateTimerUI(_totalOnlineSecs);
+}
+function updateTimerUI(secs){
+  const h=Math.floor(secs/3600),m=Math.floor((secs%3600)/60),s=secs%60;
+  const hm=h>0?h+'h '+m+'m':m+'m';
+  const chip=document.getElementById('online-timer');
+  const disp=document.getElementById('today-time-disp');
+  if(chip)chip.textContent=h>0?h+'h'+(m>0?m+'m':''):m+'m '+s+'s';
+  if(disp)disp.textContent=h>0?h+'h':m+'m';
+  // Update earnings page time card
+  const etc=document.getElementById('earn-online-time');
+  if(etc)etc.textContent=h+'h '+m+'m';
+  const perHr=document.getElementById('earn-per-hr');
+  if(perHr){const hrs=secs/3600;perHr.textContent=hrs>0.1?'\u20b9'+Math.round(_todayEarn/hrs):'\u20b90';}
+}
+function updateIncentiveUI(totalSecs){
+  // 15 orders bonus
+  const b=document.getElementById('bonus15-badge');
+  const bf=document.getElementById('bonus15-fill');
+  const bp=document.getElementById('bonus15-pct');
+  if(b){const pct=Math.min(100,Math.round((_todayDels/15)*100));b.textContent=_todayDels+' / 15 orders';if(bf)bf.style.width=pct+'%';if(bp)bp.textContent=pct+'%';}
+  // Hours bonus
+  const hb=document.getElementById('hours-badge');
+  const hf=document.getElementById('hours-fill');
+  const hp=document.getElementById('hours-pct');
+  if(hb){const hrs=Math.round(totalSecs/360)/10;const pct=Math.min(100,Math.round((totalSecs/28800)*100));hb.textContent=hrs.toFixed(1)+'h / 8h online today';if(hf)hf.style.width=pct+'%';if(hp)hp.textContent=pct+'%';}
+}
+function renderIncentiveBanners(){
+  const c=document.getElementById('incentive-banners');if(!c)return;
+  let html='';
+  if(_rainActive){
+    html+='<div class="inc-banner rain"><div class="inc-shimmer"></div><div class="inc-icon-big">&#127783;</div><div class="inc-body"><div class="inc-title">Rain Incentive Active!</div><div class="inc-sub">You\'re earning +₹10 extra per delivery right now!</div><div class="inc-badge">+₹10 / Order</div></div></div>';
+  }
+  if(_todayDels>=12&&_todayDels<15){
+    html+='<div class="inc-banner bonus"><div class="inc-shimmer"></div><div class="inc-icon-big">&#127942;</div><div class="inc-body"><div class="inc-title">Almost there! '+(15-_todayDels)+' more orders</div><div class="inc-sub">Complete '+(15-_todayDels)+' more deliveries to earn &#8377;300 bonus!</div></div></div>';
+  }
+  if(_todayDels>=15){
+    html+='<div class="inc-banner streak"><div class="inc-shimmer"></div><div class="inc-icon-big">&#127881;</div><div class="inc-body"><div class="inc-title">&#8377;300 Bonus Earned!</div><div class="inc-sub">You hit 15 deliveries today. Bonus will be credited within 24 hours!</div></div></div>';
+  }
+  c.innerHTML=html;
+}
+
+// -- LOGIN ----------------------------------------------
+async function doLogin(){
+  const phone=(document.getElementById('login-phone').value||'').trim();
+  const name=(document.getElementById('login-name').value||'').trim();
+  const err=document.getElementById('login-err');
+  const btn=document.getElementById('login-btn');
+  err.textContent='';
+  if(!/^[6-9]\d{9}$/.test(phone)){err.textContent='Enter valid 10-digit number';return;}
+  if(!name){err.textContent='Enter your name';return;}
+  btn.disabled=true;btn.textContent='Checking...';
+  waitDB(async()=>{
+    try{
+      // Check if rider exists in database
+      const snap=await window.db.collection('riders').where('phone','==',phone).limit(1).get();
+      
+      if(snap.empty){
+        // RIDER NOT FOUND - Only admin-added riders can login
+        err.textContent='❌ You are not registered. Contact admin to add you.';
+        btn.disabled=false;btn.textContent='Continue';
+        console.log('Login rejected: Rider not in database:', phone);
+        return;
+      }
+      
+      // EXISTING RIDER - Update login info
+      await snap.docs[0].ref.update({
+        lastSeen: new Date().toISOString(),
+        lastLogin: new Date().toISOString()
+      }).catch(()=>{});
+      
+      _phone=phone;_name=name;
+      window._phone=phone;window._name=name;
+      localStorage.setItem('nk_rider_phone',phone);
+      localStorage.setItem('nk_rider_name',name);
+      btn.disabled=false;btn.textContent='Continue';
+      enterApp();
+    }catch(e){
+      console.error('Login error:', e.message, e);
+      const saved=localStorage.getItem('nk_rider_phone');
+      if(saved===phone){
+        // Allow cached login only if not deleted
+        err.textContent='';
+        _phone=phone;_name=name;btn.disabled=false;btn.textContent='Continue';
+        enterApp();
+      }
+      else{
+        err.textContent='❌ Error: '+e.message;
+        btn.disabled=false;btn.textContent='Continue';
+        console.error('Full error details:', e.stack);
+      }
+    }
+  });
+}
+
+function checkSession(){
+  const ssPhone=sessionStorage.getItem('nk_dash_rider_phone');
+  const ssName=sessionStorage.getItem('nk_dash_rider_name')||sessionStorage.getItem('nk_rider_name_tmp');
+  if(ssPhone){_phone=ssPhone;_name=ssName||'Rider';enterApp();return true;}
+  const lsPhone=localStorage.getItem('nk_rider_phone');
+  const lsName=localStorage.getItem('nk_rider_name');
+  if(lsPhone){_phone=lsPhone;_name=lsName||'Rider';enterApp();return true;}
+  return false;
+}
+
+// -- ENTER APP ------------------------------------------
+function enterApp(){
+  document.getElementById('login-screen').style.display='none';
+  document.getElementById('app').classList.add('on');
+  document.getElementById('hdr-name').textContent=_name;
+  document.getElementById('hdr-phone').innerHTML='📱 '+_phone;
+  document.getElementById('rider-name-big').textContent=(_name||'Rider').split(' ')[0];
+  document.getElementById('profile-name').textContent=_name;
+  document.getElementById('profile-phone').textContent=_phone;
+  document.getElementById('profile-ava').textContent=(_name||'R')[0].toUpperCase();
+  document.getElementById('earn-hdr-name')&&(document.getElementById('earn-hdr-name').textContent=_name);
+  // Reset today online timer
+  const today=new Date().toISOString().slice(0,10);
+  const savedDate=localStorage.getItem('nk_online_date_'+_phone);
+  if(savedDate!==today){localStorage.setItem('nk_online_secs_'+_phone,'0');localStorage.setItem('nk_online_date_'+_phone,today);}
+  _totalOnlineSecs=parseInt(localStorage.getItem('nk_online_secs_'+_phone)||'0');
+  updateTimerUI(_totalOnlineSecs);
+  _isOnline=false;updateOnlineUI();
+  waitDB(async()=>{
+    try{
+      const snap=await window.db.collection('riders').where('phone','==',_phone).limit(1).get();
+      if(!snap.empty){
+        // Only force offline if they weren't already online from another session
+        const currentStatus=snap.docs[0].data().status||'offline';
+        if(currentStatus!=='online'){
+          await snap.docs[0].ref.update({status:'offline',name:_name,phone:_phone,isActive:true});
+        } else {
+          // They were online - restore that state in UI
+          _isOnline=true;window._isOnline=true;updateOnlineUI();startOnlineTimer();
+        }
+      }
+    }catch(e){console.warn('force offline:',e.message);}
+    loadRiderStats(); startOrdersListener(); listenRainIncentive();
+    // Restore map if rider had an active picked order before reload
+    if (typeof restoreGPSIfNeeded === 'function') restoreGPSIfNeeded();
+  });
+}
+
+// -- RAIN INCENTIVE LISTENER ---------------------------
+function listenRainIncentive(){
+  if(!window.rtdb)return;
+  window.rtdb.ref('incentives/rain').on('value',snap=>{
+    const val=snap.val();
+    _rainActive=!!(val&&val.active);
+    renderIncentiveBanners();
+    updateRainUI();
+    // Update header indicator
+    if(typeof updateRainSurgeIndicator==='function') updateRainSurgeIndicator();
+  });
+}
+
+function updateRainUI(){
+  // Update header with rain animation
+  const header = document.getElementById('top-nav');
+  const headerRainDrops = document.getElementById('header-rain-drops');
+  
+  if(_rainActive) {
+    // Add rain mode to header
+    header.classList.add('rain-mode');
+    
+    // Create rain drops animation in header
+    if(headerRainDrops) {
+      headerRainDrops.innerHTML = '';
+      for(let i = 0; i < 15; i++) {
+        const drop = document.createElement('div');
+        drop.className = 'header-rain-drop';
+        drop.style.left = Math.random() * 100 + '%';
+        drop.style.height = (6 + Math.random() * 8) + 'px';
+        drop.style.animationDuration = (0.3 + Math.random() * 0.4) + 's';
+        drop.style.animationDelay = (-Math.random()) + 's';
+        headerRainDrops.appendChild(drop);
+      }
+    }
+  } else {
+    // Remove rain mode from header
+    header.classList.remove('rain-mode');
+    if(headerRainDrops) {
+      headerRainDrops.innerHTML = '';
+    }
+  }
+  
+  // Update header rain surge indicator
+  if(typeof updateRainSurgeIndicator==='function') updateRainSurgeIndicator();
+  
+  // Rain badge in earnings page
+  const rb=document.getElementById('rain-badge');
+  if(rb)rb.innerHTML=_rainActive?'&#127783; ACTIVE &ndash; +₹10/order':'Currently Inactive';
+
+  // Rate card ? show/hide rain note and update amounts
+  const rateNote=document.getElementById('rain-rate-note');
+  if(rateNote)rateNote.style.display=_rainActive?'flex':'none';
+  const BASE=[20,25,30,35,40,50,60,80];
+  BASE.forEach((v,i)=>{
+    const el=document.getElementById('rate-'+i);
+    if(!el)return;
+    if(_rainActive){
+      el.innerHTML='<span style="text-decoration:line-through;opacity:.5;font-size:11px">\u20b9'+v+'</span> \u20b9'+(v+10);
+      el.style.background='linear-gradient(135deg,#E3F2FD,#BBDEFB)';
+      el.style.color='#1565C0';
+    } else {
+      el.innerHTML='\u20b9'+v;
+      el.style.background='';
+      el.style.color='';
+    }
+  });
+
+  // Rate note bottom
+  const rateNoteBottom=document.getElementById('rate-note-bottom');
+  if(rateNoteBottom){
+    rateNoteBottom.innerHTML=_rainActive
+      ?'&#127783; <strong>Rain Bonus Active!</strong> +₹10 on every delivery. Normal charges resume when rain stops.'
+      :'&#8377; You earn the <strong>full delivery charge</strong> &ndash; 100% goes to you!';
+    rateNoteBottom.style.background=_rainActive?'#E3F2FD':'';
+    rateNoteBottom.style.borderColor=_rainActive?'#90CAF9':'';
+    rateNoteBottom.style.color=_rainActive?'#1565C0':'';
+  }
+
+  // POD modal rain line
+  const podRain=document.getElementById('pod-rain-line');
+  if(podRain)podRain.style.display=_rainActive?'flex':'none';
+
+  // Re-render orders to update earning amounts
+  if(_orders.length)renderOrders();
+}
+
+// -- LOAD RIDER STATS ----------------------------------
+let _statsLastFetch=0;
+async function loadRiderStats(){
+  // Cache: only hit Firestore once per 60s
+  if(Date.now()-_statsLastFetch<60000&&_statsLastFetch>0){_applyStatsUI();return;}
+  _statsLastFetch=Date.now();
+  try{
+    const todayStart=new Date();todayStart.setHours(0,0,0,0);
+    const weekStart=new Date();weekStart.setHours(0,0,0,0);
+    const wd=weekStart.getDay();weekStart.setDate(weekStart.getDate()-(wd===0?6:wd-1));
+    // Single-field query only — no composite index needed
+    const oSnap=await window.db.collection('orders')
+      .where('riderPhone','==',_phone)
+      .where('status','==','delivered')
+      .limit(50)
+      .get().catch(()=>({docs:[]}));
+    const all=oSnap.docs.map(x=>x.data());
+    const todayOrders=all.filter(o=>{const t=o.createdAt?.seconds?new Date(o.createdAt.seconds*1000):null;return t&&t>=todayStart;});
+    const weekOrders=all.filter(o=>{const t=o.createdAt?.seconds?new Date(o.createdAt.seconds*1000):null;return t&&t>=weekStart;});
+    _todayEarn=todayOrders.reduce((s,o)=>s+(o.riderEarnings||o.deliveryCharge||20),0);
+    _todayDels=todayOrders.length;
+    _weekEarn=weekOrders.reduce((s,o)=>s+(o.riderEarnings||o.deliveryCharge||20),0);
+    _weekDels=weekOrders.length;
+    // Fire-and-forget rider doc update
+    window.db.collection('riders').where('phone','==',_phone).limit(1).get()
+      .then(s=>{if(!s.empty)s.docs[0].ref.update({todayEarnings:_todayEarn,weekEarnings:_weekEarn,todayDeliveries:_todayDels,weekDeliveries:_weekDels,todayOnlineSecs:_totalOnlineSecs}).catch(()=>{});}).catch(()=>{});
+    _applyStatsUI();
+  }catch(e){console.warn('loadRiderStats:',e.message);}
+}
+function _applyStatsUI(){
+  const ts='\u20b9'+_todayEarn,ws='\u20b9'+_weekEarn;
+  const ids1=['today-earn-disp','earn-today','stat-today'];
+  const ids2=['today-dels-disp','earn-deliveries','stat-deliveries'];
+  const ids3=['earn-week','stat-week'];
+  ids1.forEach(id=>{const el=document.getElementById(id);if(el)el.textContent=ts;});
+  ids2.forEach(id=>{const el=document.getElementById(id);if(el)el.textContent=String(_todayDels);});
+  ids3.forEach(id=>{const el=document.getElementById(id);if(el)el.textContent=ws;});
+  renderIncentiveBanners();
+  updateIncentiveUI(_totalOnlineSecs+(_onlineStartTs?Math.floor((Date.now()-_onlineStartTs)/1000):0));
+  syncEarningsPage();
+}
+
+// -- ONLINE TOGGLE -------------------------------------
+async function toggleOnline(){
+  _isOnline=!_isOnline;
+  window._isOnline=_isOnline;
+  updateOnlineUI();renderOrders();
+  if(_isOnline)startOnlineTimer();
+  else{ stopOnlineTimer(); if(window.riderDismissAlarm) riderDismissAlarm(); }
+  try{
+    const now=new Date().toISOString();
+    const snap=await window.db.collection('riders').where('phone','==',_phone).limit(1).get();
+    const updateData={status:_isOnline?'online':'offline',lastOnlineToggle:now,lastSeen:now,name:_name,phone:_phone,isActive:true};
+    if(!snap.empty){
+      await snap.docs[0].ref.update(updateData);
+    } else {
+      await window.db.collection('riders').add({...updateData,todayEarnings:0,weekEarnings:0,totalEarnings:0,deliveriesCompleted:0,todayDeliveries:0,rating:4.5,bikeNumber:'',createdAt:firebase.firestore.FieldValue.serverTimestamp()});
+    }
+    toast(_isOnline?'\uD83D\uDFE2 You are now Online \u2013 ready for orders!':'\uD83D\uDD34 You are Offline',_isOnline?'success':'info');
+  }catch(e){console.warn('toggleOnline:',e.message);}
+  // Start/stop order listeners based on online status
+  if(_isOnline){
+    if(window.startOrdersListener) window.startOrdersListener();
+  } else {
+    if(window._availUnsub){try{window._availUnsub();}catch(e){}window._availUnsub=null;}
+  }
+}
+function updateOnlineUI(){
+  const tog=document.getElementById('online-toggle');
+  const txt=document.getElementById('toggle-txt');
+  const pst=document.getElementById('profile-status-txt');
+  const psd=document.getElementById('profile-status-dot');
+  const chip=document.querySelector('.tn-time-chip');
+  tog.classList.toggle('on',_isOnline);
+  txt.textContent=_isOnline?'Online':'Offline';
+  if(pst)pst.textContent=_isOnline?'Online':'Offline';
+  if(psd)psd.style.background=_isOnline?'var(--green)':'var(--text3)';
+  if(chip)chip.style.opacity=_isOnline?'1':'0.5';
+  // Rapido: show/hide available orders when online status changes
+  if(window.renderAvailSection)window.renderAvailSection();
+}
+
+// -- LOAD ORDERS (manual refresh button only) ---------
+async function loadOrders(){
+  const el=document.getElementById('orders-list');
+  el.innerHTML='<div class="spinner"></div>';
+  try{
+    const snap=await window.db.collection('orders')
+      .where('riderPhone','==',_phone)
+      .where('status','in',['assigned','picked'])
+      .limit(3)
+      .get();
+    _orders=snap.docs.map(d=>({id:d.id,...d.data()}))
+      .sort((a,b)=>(b.createdAt?.seconds||0)-(a.createdAt?.seconds||0));
+    renderOrders();
+  }catch(e){
+    el.innerHTML='<div class="empty-state"><div class="empty-icon">&#9888;</div><div class="empty-title">Failed to load</div><div class="empty-sub">'+esc(e.message)+'</div></div>';
+  }
+}
+function renderOrders(){
+  const el=document.getElementById('orders-list');
+  const cnt=document.getElementById('orders-count');
+  const badge=document.getElementById('order-badge');
+  cnt.textContent=_orders.length?_orders.length+' active':'';
+  if(_orders.length>0){badge.classList.add('on');badge.textContent=_orders.length;badge.style.display='flex';}
+  else{badge.classList.remove('on');badge.style.display='none';}
+  if(!_orders.length){
+    if(_isOnline){
+      el.innerHTML='<div class="empty-state"><div class="empty-icon">&#128666;</div><div class="empty-title">No orders right now</div><div class="empty-sub">Stay online &ndash; new orders will appear here automatically!</div></div>';
+    }else{
+      el.innerHTML='<div class="offline-nudge"><div class="nudge-icon">&#128274;</div><div class="nudge-body"><div class="nudge-title">You\'re Offline</div><div class="nudge-msg">Go <strong>Online</strong> to start receiving new orders. Tap the toggle at the top!</div></div></div>'
+        +'<div class="nudge-tip">&#128161; Riders who stay online earn <strong style="color:var(--green)">more</strong> ? don\'t miss orders!</div>';
+    }
+    return;
+  }
+  el.innerHTML=_orders.map(o=>renderOrderCard(o)).join('');
+  // Re-inject live map strip into card after DOM re-render
+  // FIX: call showLiveMap twice (80ms + 350ms) to handle async rendering
+  setTimeout(function(){
+    if (window.showLiveMap && window._myOrder) window.showLiveMap();
+  }, 80);
+  setTimeout(function(){
+    if (window.showLiveMap && window._myOrder) window.showLiveMap();
+  }, 350);
+}
+function renderOrderCard(o){
+  const isAssigned=o.status==='assigned',isPicked=(o.status==='picked'||o.status==='en_route');
+  const items=Array.isArray(o.items)?o.items:[];
+  let riderEarns=o.deliveryCharge||calcDeliveryCharge(o.latitude,o.longitude);
+  if(_rainActive)riderEarns+=10; // Rain bonus
+  const collectAmt=o.totalPrice||0;
+  const dist=calcDist(o.latitude,o.longitude);
+  const custInitial=(o.customerName||'C')[0].toUpperCase();
+  const itemsHtml=items.map(i=>'<div class="item-row"><span class="item-name">'+esc(i.name)+'</span><span class="item-qty">x'+i.qty+'</span><span class="item-amt">\u20b9'+(i.cost||0)+'</span></div>').join('');
+  // Navigate: when assigned → go to store to pick up; when picked → go to customer
+  const RIDER_STORE_LAT=window.STORE_LAT||17.549395259963312,RIDER_STORE_LNG=window.STORE_LNG||80.6274729902068;
+  const navUrl=isAssigned
+    ?'https://www.google.com/maps/dir/current+location/'+RIDER_STORE_LAT+','+RIDER_STORE_LNG
+    :(o.latitude&&o.longitude?'https://www.google.com/maps/dir/current+location/'+o.latitude+','+o.longitude:'');
+  const rainBadge=_rainActive?'<span style="background:#E3F2FD;color:#1565C0;font-size:10px;font-weight:800;padding:2px 8px;border-radius:20px;margin-left:6px">&#127783;+₹10</span>':'';
+  // Inject live map strip into active card
+  const mapInject = (isAssigned||isPicked) ?
+    '<div id="live-map-inject-'+o.id+'" class="oc-live-map-slot"></div>' : '';
+
+  return '<div class="order-card '+(isPicked?'active-delivery':'')+'">'+
+    mapInject+
+    '<div class="oc-top"><span class="oc-id">#'+o.id.slice(-6).toUpperCase()+'</span>'+
+    '<span class="oc-status '+(isAssigned?'st-assigned':'st-picked')+'">'+
+    (isAssigned?'&#128204; Assigned':'&#127949; Delivering')+'</span></div>'+
+    '<div class="oc-customer"><div class="cust-ava">'+custInitial+'</div>'+
+    '<div><div class="cust-name">'+esc(o.customerName||'Customer')+'</div>'+
+    '<div class="cust-phone">'+esc(o.customerPhone||'N/A')+'</div></div></div>'+
+    '<div class="oc-dist"><div class="dist-info"><div class="dist-icon">&#128205;</div>'+
+    '<div><div class="dist-val">'+(dist?dist+' km':'N/A')+'</div>'+
+    '<div class="dist-sub">Store to customer</div></div></div>'+
+    '<div class="dist-earn"><div class="dist-earn-val">&#8377;'+riderEarns+rainBadge+'</div>'+
+    '<div class="dist-earn-sub">Your earning</div></div></div>'+
+    '<div class="oc-address"><div class="addr-dot"></div>'+
+    '<div class="addr-text">'+esc(o.address||'No address provided')+'</div></div>'+
+    '<div class="oc-items" id="oi-'+o.id+'" onclick="toggleItems(this)">'+
+    '<div class="oc-items-hdr"><span class="items-title">&#128230; Order Items</span>'+
+    '<div class="items-toggle"><span class="items-count">'+items.length+' item'+(items.length!==1?'s':'')+'</span>'+
+    '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></div></div>'+
+    '<div class="oc-items-body">'+itemsHtml+'</div></div>'+
+    '<div class="oc-collect"><div><div class="collect-label">&#128181; Collect from customer</div>'+
+    '<div style="font-size:10px;color:#c8860b;margin-top:2px;font-weight:600">Hand over to store owner</div></div>'+
+    '<div style="text-align:right"><div class="collect-amt">&#8377;'+collectAmt+'</div>'+
+    '<div class="collect-sub">Your cut: &#8377;'+riderEarns+'</div></div></div>'+
+    '<div class="oc-actions">'+
+    (isAssigned?'<button class="btn-main btn-pickup" onclick="markPickedUp(\''+o.id+'\')"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg> Picked Up &ndash; Start Delivery</button>':
+      '<button class="btn-main btn-deliver" onclick="openPOD(\''+o.id+'\')"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg> Mark as Delivered</button>')+
+    '<div class="action-row">'+
+    '<a href="tel:'+esc(o.customerPhone)+'" class="btn-sm-action btn-call"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07A19.5 19.5 0 013.07 9.81a19.79 19.79 0 01-3.07-8.67A2 2 0 012 0h3a2 2 0 012 1.72c.127.96.361 1.903.7 2.81a2 2 0 01-.45 2.11L6.09 7.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0122 16.92z"/></svg> Call</a>'+
+    (navUrl?'<a href="'+navUrl+'" target="_blank" rel="noopener" class="btn-sm-action btn-navigate"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg> '+(isAssigned?'To Store':'To Customer')+'</a>':'')+
+    '<a href="https://wa.me/91'+esc(o.customerPhone)+'" target="_blank" rel="noopener" class="btn-sm-action btn-whatsapp"><svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg> WA</a>'+
+    '</div></div></div>';
+}
+function toggleItems(el){el.classList.toggle('open');}
+
+// -- ORDERS LIVE LISTENER --
+function startOrdersListener(){
+  if(_ordersUnsub)_ordersUnsub();
+  if(_availUnsub)_availUnsub();
+
+  // ── Startup guard: clear any stale delivered/cancelled active order ──
+  // Happens when rider closes app mid-delivery and the Firestore write succeeded offline.
+  // On reopen the local _myOrder is stale; we reconcile before attaching the listener.
+  window.db.collection('orders')
+    .where('riderPhone','==',_phone)
+    .where('status','in',['assigned','picked'])
+    .limit(3)
+    .get()
+    .then(function(snap){
+      var live = snap.docs.map(function(d){ return Object.assign({id:d.id},d.data()); });
+      if(live.length === 0){
+        // No active orders in Firestore — clear local state so available orders show
+        _myOrder = null;
+        window._myOrder = null;
+        _orders = [];
+        if(window.renderAvailSection) window.renderAvailSection();
+      }
+    })
+    .catch(function(){});
+
+  _ordersUnsub=window.db.collection('orders')
+    .where('riderPhone','==',_phone)
+    .where('status','in',['assigned','picked'])
+    .limit(3)
+    .onSnapshot(function(snap){
+      _orders=snap.docs.map(function(d){ return Object.assign({id:d.id},d.data()); })
+        .sort(function(a,b){ return (b.createdAt&&b.createdAt.seconds||0)-(a.createdAt&&a.createdAt.seconds||0); });
+
+      // Sync _myOrder with Firestore truth — fixes stale state after reopen
+      _myOrder = _orders.length > 0 ? _orders[0] : null;
+      window._myOrder = _myOrder;
+
+      renderOrders();
+      if(window.renderAvailSection) window.renderAvailSection();
+      snap.docChanges().forEach(function(ch){
+        if(ch.type==='added'&&ch.doc.data().status==='assigned') toast('&#128276; New order assigned!','success');
+      });
+    },function(err){ console.warn('orders listener:',err.message); });
+
+  // ── AVAILABLE ORDERS LISTENER (packing orders waiting for rider pickup) ──
+  _availUnsub=window.db.collection('orders')
+    .where('status','==','packing')
+    .orderBy('createdAt','desc')
+    .limit(20)
+    .onSnapshot(function(snap){
+      if(window._availOrders===undefined) window._availOrders=[];
+      window._availOrders=snap.docs.map(function(d){ return Object.assign({id:d.id},d.data()); });
+      if(window.renderAvailSection) window.renderAvailSection();
+      snap.docChanges().forEach(function(ch){
+        if(ch.type==='added') triggerRiderAlarm(ch.doc.data());
+      });
+    },function(err){ console.warn('avail orders listener:',err.message); });
+}
+
+// -- MARK PICKED UP ------------------------------------
+async function markPickedUp(orderId){
+  try{
+    await window.db.collection('orders').doc(orderId).update({
+      status:'picked',pickedAt:new Date().toISOString(),updatedAt:new Date().toISOString()
+    });
+    // Immediately update local state so UI shows 'Mark as Delivered' without waiting for Firestore round-trip
+    var idx = _orders.findIndex(function(o){ return o.id === orderId; });
+    if(idx !== -1){
+      _orders[idx].status = 'picked';
+      _myOrder = _orders[idx];
+      window._myOrder = _myOrder;
+    }
+    renderOrders();
+    toast('Picked up! Start delivery','success');
+    showLiveMap();
+    setTimeout(function(){ startGPS(orderId); }, 150);
+  }catch(e){toast('Failed: '+e.message,'error');}
+}
+
+// -- POD MODAL -----------------------------------------
+async function openPOD(orderId){
+  try{
+    const snap=await window.db.collection('orders').doc(orderId).get();
+    if(!snap.exists){toast('Order not found','error');return;}
+    _activePOD={orderId,orderData:snap.data()};_podPhoto=null;
+    const amt=snap.data().totalPrice||0;
+    const pin=snap.data().deliveryPin||null;
+    document.getElementById('pod-collect-amt').textContent='\u20b9'+amt;
+    document.getElementById('pod-photo-zone').innerHTML='<div style="font-size:36px;margin-bottom:8px">&#128247;</div><div style="font-size:13px;font-weight:800;color:var(--text2)">Tap to take photo</div><div style="font-size:11px;color:var(--text3);margin-top:3px;font-weight:600">Camera opens automatically</div>';
+    const chkBox=document.getElementById('pod-chk');
+    const confirmBtn=document.getElementById('pod-confirm-btn');
+    const cashRow=document.getElementById('pod-cash-row');
+    const chkLabel=cashRow?cashRow.querySelector('label'):null;
+    
+    // Reset checkbox state
+    chkBox.checked=false;
+    if(cashRow)cashRow.classList.remove('checked');
+    confirmBtn.disabled=true;
+    confirmBtn.dataset.processing='false';
+    confirmBtn.style.opacity='0.5';
+    
+    // Function to update button state based on both photo + checkbox
+    function updateConfirmBtnState(){
+      const hasPhoto=!!_podPhoto;
+      const isChecked=chkBox.checked;
+      const canConfirm=hasPhoto&&isChecked;
+      confirmBtn.disabled=!canConfirm;
+      confirmBtn.style.opacity=canConfirm?'1':'0.5';
+      confirmBtn.style.pointerEvents=canConfirm?'auto':'none';
+    }
+    
+    // Remove old listeners to prevent duplicates
+    if(chkBox._changeListener)chkBox.removeEventListener('change',chkBox._changeListener);
+    if(cashRow._clickListener)cashRow.removeEventListener('click',cashRow._clickListener);
+    
+    // Checkbox change event - works on all devices
+    chkBox._changeListener=function(e){
+      e.stopPropagation();
+      const isNowChecked=chkBox.checked;
+      if(isNowChecked){
+        cashRow.classList.add('checked');
+        if(chkLabel)chkLabel.style.color='var(--green)';
+      }else{
+        cashRow.classList.remove('checked');
+        if(chkLabel)chkLabel.style.color='var(--text)';
+      }
+      updateConfirmBtnState();
+    };
+    chkBox.addEventListener('change',chkBox._changeListener);
+    
+    // Click anywhere on row to toggle checkbox (for mobile usability)
+    cashRow._clickListener=function(e){
+      if(e.target===chkBox)return; // Let checkbox handle itself
+      e.preventDefault();
+      e.stopPropagation();
+      chkBox.checked=!chkBox.checked;
+      chkBox.dispatchEvent(new Event('change',{bubbles:true}));
+    };
+    cashRow.addEventListener('click',cashRow._clickListener);
+    
+    // Also listen for input event as backup for some browsers
+    chkBox._inputListener=function(e){
+      chkBox._changeListener(e);
+    };
+    chkBox.addEventListener('input',chkBox._inputListener);
+    
+    updateConfirmBtnState();
+    // Display PIN reference for rider
+    const pinRef=document.getElementById('pod-pin-reference');
+    if(pin&&pinRef){
+      const pinStr=String(pin).padStart(4,'0');
+      for(let i=0;i<4;i++){
+        const el=document.getElementById('pod-pin-ref-'+i);
+        if(el) el.textContent=pinStr[i];
+      }
+      pinRef.style.display='block';
+    } else if(pinRef){
+      pinRef.style.display='none';
+    }
+    var pinInput=document.getElementById('pod-pin-input');
+    if(pinInput) pinInput.value='';
+    var pinStatus=document.getElementById('pod-pin-status');
+    if(pinStatus) pinStatus.textContent='';
+    document.getElementById('pod-confirm-btn').innerHTML='<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg> Confirm Delivery';
+    document.getElementById('pod-modal').classList.add('on');
+  }catch(e){toast('Error: '+e.message,'error');}
+}
+function closePOD(){document.getElementById('pod-modal').classList.remove('on');_activePOD=null;_podPhoto=null;}
+document.getElementById('pod-modal').addEventListener('click',function(e){if(e.target===this)closePOD();});
+function podPhotoSelected(input){
+  const file=input.files[0];if(!file)return;
+  _podPhoto=file;
+  const reader=new FileReader();
+  reader.onload=e=>{
+    document.getElementById('pod-photo-zone').innerHTML='<img src="'+e.target.result+'" style="width:100%;height:100%;object-fit:cover;border-radius:10px">';
+    // Update button state when photo is loaded
+    const chk=document.getElementById('pod-chk');
+    const btn=document.getElementById('pod-confirm-btn');
+    if(chk&&btn){
+      const canConfirm=!!_podPhoto&&chk.checked;
+      btn.disabled=!canConfirm;
+      btn.style.opacity=canConfirm?'1':'0.5';
+      btn.style.pointerEvents=canConfirm?'auto':'none';
+    }
+  };
+  reader.readAsDataURL(file);
+}
+function verifyDeliveryPIN(){
+  var input=document.getElementById('pod-pin-input');
+  var statusEl=document.getElementById('pod-pin-status');
+  var confirmBtn=document.getElementById('pod-confirm-btn');
+  if(!input||!statusEl||!confirmBtn) return;
+  var entered=(input.value||'').trim();
+  if(entered.length!==4){statusEl.textContent='Enter the 4-digit PIN';statusEl.style.color='#ef4444';return;}
+  var orderPin=_activePOD&&_activePOD.orderData&&_activePOD.orderData.deliveryPin;
+  if(!orderPin){
+    // PIN not found — allow delivery anyway with warning
+    statusEl.textContent='⚠️ PIN not available — proceed carefully';
+    statusEl.style.color='#f59e0b';
+    confirmBtn.disabled=false;confirmBtn.style.opacity='1';
+    return;
+  }
+  if(String(entered)===String(orderPin)){
+    statusEl.textContent='✅ PIN verified! You can confirm delivery';
+    statusEl.style.color='#059669';
+    confirmBtn.disabled=false;confirmBtn.style.opacity='1';
+    input.style.borderColor='#059669';
+  } else {
+    statusEl.textContent='❌ Wrong PIN — ask customer again';
+    statusEl.style.color='#ef4444';
+    confirmBtn.disabled=true;confirmBtn.style.opacity='0.5';
+    input.style.borderColor='#ef4444';
+    input.value='';input.focus();
+  }
+}
+
+async function confirmDelivery(){
+  if(!_activePOD)return;
+  if(!_podPhoto){toast('📷 Take a photo first','error');return;}
+  const chk=document.getElementById('pod-chk');
+  if(!chk||!chk.checked){toast('✓ Confirm that you received cash from customer','error');return;}
+  const btn=document.getElementById('pod-confirm-btn');
+  // Prevent double-click on slow networks
+  if(btn.disabled||btn.dataset.processing==='true')return;
+  btn.dataset.processing='true';
+  btn.disabled=true;
+  btn.style.opacity='0.5';
+  btn.innerHTML='<div class="spinner" style="width:20px;height:20px;margin:0;border-width:2px"></div> Saving…';
+  let photoB64=null;
+  try{
+    photoB64=await new Promise((res,rej)=>{
+      const img=new Image();
+      img.onload=()=>{const scale=Math.min(1,600/img.width);const c=document.createElement('canvas');c.width=img.width*scale;c.height=img.height*scale;c.getContext('2d').drawImage(img,0,0,c.width,c.height);res(c.toDataURL('image/jpeg',.7));};
+      img.onerror=rej;const r=new FileReader();r.onload=e=>img.src=e.target.result;r.onerror=rej;r.readAsDataURL(_podPhoto);
+    });
+  }catch{toast('Photo error','error');btn.disabled=false;btn.dataset.processing='false';btn.style.opacity='1';btn.innerHTML='<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg> Confirm Delivery';return;}
+  let deliveryMins=0;
+  try{const od=_activePOD.orderData;const placed=od.createdAt?.toDate?od.createdAt.toDate():new Date(od.createdAt||0);deliveryMins=Math.round((Date.now()-placed.getTime())/60000);}catch{}
+  const{orderId,orderData:od}=_activePOD;
+  const baseEarns=od.deliveryCharge||calcDeliveryCharge(od.latitude,od.longitude)||20;
+  const rainBonus=_rainActive?10:0;
+  const riderEarns=baseEarns+rainBonus;
+  try{
+    await window.db.collection('orders').doc(orderId).update({
+      status:'delivered',deliveredAt:new Date().toISOString(),
+      deliveryMins,proofOfDelivery:photoB64,
+      riderEarnings:riderEarns,
+      riderBaseEarnings:baseEarns,
+      rainBonus:rainBonus,
+      updatedAt:new Date().toISOString(),
+      statusHistory:firebase.firestore.FieldValue.arrayUnion({status:'delivered',ts:new Date().toISOString()})
+    });
+    try{
+      const rSnap=await window.db.collection('riders').where('phone','==',_phone).limit(1).get();
+      if(!rSnap.empty){
+        await rSnap.docs[0].ref.update({
+          todayEarnings:firebase.firestore.FieldValue.increment(riderEarns),
+          weekEarnings:firebase.firestore.FieldValue.increment(riderEarns),
+          totalEarnings:firebase.firestore.FieldValue.increment(riderEarns),
+          deliveriesCompleted:firebase.firestore.FieldValue.increment(1),
+          todayDeliveries:firebase.firestore.FieldValue.increment(1),
+          weekDeliveries:firebase.firestore.FieldValue.increment(1),
+          lastDeliveryAt:new Date().toISOString(),
+          lastSeen:new Date().toISOString()
+        });
+      }
+    }catch(e){console.warn('earnings update:',e.message);}
+    if(typeof stopGPS==='function')stopGPS();
+    // Clear RTDB location after delivery
+    try{if(window.rtdb){window.rtdb.ref('riderLocations/'+orderId).remove();window.rtdb.ref('riderLocations/'+_phone).remove();}}catch(e){}
+    // Clear active order so available orders section shows again
+    _myOrder = null;
+    window._myOrder = null;
+    _orders = [];
+    // Send WhatsApp AFTER all Firestore operations succeed
+    try{
+      const custPhone=od.customerPhone||'',custName=od.customerName||'Customer';
+      const items=Array.isArray(od.items)?od.items:[];
+      const itemsTxt=items.map(i=>'\u2022 '+encodeURIComponent(i.name+' x'+i.qty+' \u20b9'+i.cost)).join('%0A');
+      const delFee=(od.deliveryCharge||0)>0?'₹'+(od.deliveryCharge||0):'FREE';
+      const tot=od.totalPrice||0;
+      const rainNote=_rainActive?'%0A%F0%9F%8C%A7 Rain bonus applied!':'';
+      const msg='%F0%9F%8E%89 *Order Delivered!*%0A%0AHi '+encodeURIComponent(custName)+'!%0A%0A*Items:*%0A'+itemsTxt
+        +'%0A%0A*Bill:*%0AItems: %E2%82%B9'+(tot-(od.deliveryCharge||0))+'%0ADelivery: '+delFee+'%0A*Total Paid: %E2%82%B9'+tot+'*'
+        +rainNote+'%0A%0ADelivered in *'+deliveryMins+' min*%0AOrder: %23'+orderId.slice(-6).toUpperCase()+'%0A%0AThank you! &#127822; *Nekta Kothagudem*';
+      window.open('https://wa.me/91'+custPhone+'?text='+msg,'_blank','noopener,noreferrer');
+    }catch(e){
+}
+    closePOD();
+    toast('&#9989; Delivered! +₹'+riderEarns+' earned'+(_rainActive?' &#127783; Rain bonus!':''),'success');
+    _statsLastFetch=0; _histLastFetch=0; loadRiderStats();
+    renderOrders();
+    if(window.renderAvailSection) window.renderAvailSection();
+    // Reset per-order shop location for next order
+    if(typeof _ORDER_STORE_LAT !== 'undefined'){ _ORDER_STORE_LAT = null; _ORDER_STORE_LNG = null; }
+  }catch(e){toast('Failed: '+e.message,'error');btn.disabled=false;btn.innerHTML='<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg> Confirm Delivery';}
+}
+
+// -- TABS ----------------------------------------------
+function switchTab(name,btnId){
+  document.querySelectorAll('.nb').forEach(b=>b.classList.remove('on'));
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('on'));
+  const btn=typeof btnId==='string'?document.getElementById(btnId):btnId;
+  if(btn)btn.classList.add('on');
+  document.getElementById('page-'+name).classList.add('on');
+  if(name==='history')loadHistory();
+  if(name==='profile')loadRiderStats();
+  if(name==='earnings')syncEarningsPage();
+}
+function syncEarningsPage(){
+  document.getElementById('earn2-today').textContent='\u20b9'+_todayEarn;
+  document.getElementById('earn2-week').textContent='\u20b9'+_weekEarn;
+  document.getElementById('earn2-today-dels').textContent=String(_todayDels);
+  document.getElementById('earn2-week-dels').textContent=String(_weekDels);
+  document.getElementById('earn2-today-big').textContent='\u20b9'+_todayEarn;
+  document.getElementById('earn2-today-dels-big').textContent=String(_todayDels);
+  document.getElementById('earn2-week-big').textContent='\u20b9'+_weekEarn;
+  document.getElementById('earn-hero-total').textContent=String(_weekEarn||_todayEarn);
+  const totalSecs=_totalOnlineSecs+(_onlineStartTs?Math.floor((Date.now()-_onlineStartTs)/1000):0);
+  updateTimerUI(totalSecs);
+  updateIncentiveUI(totalSecs);
+}
+
+// -- HISTORY -------------------------------------------
+let _histLastFetch=0, _histCache=null;
+async function loadHistory(){
+  const el=document.getElementById('history-list');
+  const cnt=document.getElementById('hist-count');
+  // Cache for 2 minutes
+  if(Date.now()-_histLastFetch<120000&&_histCache&&_histLastFetch>0){
+    el.innerHTML=_histCache;
+    return;
+  }
+  el.innerHTML='<div class="spinner"></div>';
+  try{
+    // Simple 2-field query — no composite index needed
+    const snap=await window.db.collection('orders')
+      .where('riderPhone','==',_phone)
+      .where('status','==','delivered')
+      .limit(50).get();
+    const delivered=snap.docs.map(d=>({id:d.id,...d.data()}))
+      .sort((a,b)=>(b.createdAt?.seconds||0)-(a.createdAt?.seconds||0));
+    cnt.textContent=delivered.length?delivered.length+' deliveries':'';
+    if(!delivered.length){
+      el.innerHTML='<div class="empty-state"><div class="empty-icon">&#128230;</div><div class="empty-title">No deliveries yet</div><div class="empty-sub">Complete your first delivery to see history here</div></div>';
+      return;
+    }
+    let html='';
+    delivered.forEach(o=>{
+      const ts=o.createdAt?.seconds?new Date(o.createdAt.seconds*1000):new Date(0);
+      const earned=o.riderEarnings||o.deliveryCharge||20;
+      const rainTag=o.rainBonus?'<span style="font-size:10px;color:var(--blue);margin-left:4px">&#127783;+₹'+o.rainBonus+'</span>':'';
+      html+='<div class="hist-card"><div class="hist-icon">&#127949;</div><div class="hist-info">'
+        +'<div class="hist-name">'+esc(o.customerName||'Customer')+'</div>'
+        +'<div class="hist-meta">#'+o.id.slice(-6).toUpperCase()+(o.deliveryMins?' &ndash; &#128336; '+o.deliveryMins+' min':'')
+        +' \u2013 '+ts.toLocaleDateString('en-IN',{day:'numeric',month:'short'})+'</div></div>'
+        +'<div class="hist-earn">+&#8377;'+earned+rainTag+'</div></div>';
+    });
+    _histCache=html;
+    _histLastFetch=Date.now();
+    el.innerHTML=html;
+  }catch(e){el.innerHTML='<div class="empty-state"><div class="empty-icon">&#9888;</div><div class="empty-title">'+esc(e.message)+'</div></div>';}
+}
+// -- INVITE --------------------------------------------
+function copyInviteLink(){
+  const url=document.getElementById('invite-url').textContent;
+  navigator.clipboard.writeText(url).then(()=>toast('&#128203; Link copied!','success')).catch(()=>{
+    const el=document.createElement('textarea');el.value=url;document.body.appendChild(el);el.select();document.execCommand('copy');document.body.removeChild(el);toast('&#128203; Link copied!','success');
+  });
+}
+function shareInviteWhatsApp(){
+  const url=document.getElementById('invite-url').textContent;
+  const msg='&#129309; *Join Nekta Riders!*%0A%0AEarn money delivering groceries in Kothagudem.%0A%0A&#128241; Download the Rider App:%0A'+encodeURIComponent(url)+'%0A%0A&#128172; Contact Nekta Support to register before logging in.%0A%0A&#128241; Support: wa.me/919398448938';
+  window.open('https://wa.me/?text='+msg,'_blank');
+}
+function contactSupportForNewRider(){
+  window.open('https://wa.me/919398448938?text=Hi%2C+I+was+invited+to+join+Nekta+Riders.+Please+help+me+register.','_blank');
+}
+
+// -- LOGOUT --------------------------------------------
+async function doLogout(){
+  if(!confirm('Are you sure you want to sign out?')) return;
+  try{
+    stopOnlineTimer();
+    
+    // Update status to offline in database
+    try{
+      const snap=await window.db.collection('riders').where('phone','==',_phone).limit(1).get();
+      if(!snap.empty){
+        await snap.docs[0].ref.update({status:'offline',isActive:false});
+      }
+    }catch(e){console.warn('Update offline status failed:',e.message);}
+    
+    // Stop GPS
+    if(typeof stopGPS==='function'){
+      try{stopGPS();}catch(e){console.warn('Stop GPS failed:',e.message);}
+    }
+    
+    // Unsubscribe from listeners
+    if(_ordersUnsub){try{_ordersUnsub();}catch(e){}}
+    if(_availUnsub){try{_availUnsub();}catch(e){}}
+    if(_myUnsub){try{_myUnsub();}catch(e){}}
+    if(window._ordersUnsub){try{window._ordersUnsub();}catch(e){}}
+    
+    // Clear all storage
+    localStorage.clear();
+    sessionStorage.clear();
+    
+    toast('Signed out successfully ✅','success');
+    
+    // Redirect after brief delay
+    setTimeout(()=>{
+      location.href='./rider.html';
+    },500);
+  }catch(e){
+    console.error('Logout error:',e);
+    toast('Error signing out. Try again.','error');
+  }
+}
+
+// -- PWA INSTALL ---------------------------------------
+// PWA install is handled by the cross-device handler at bottom of page
+// window.installPWA and window.dismissPWABanner are set there
+
+// -- SERVICE WORKER ------------------------------------
+// SW registration handled by update-listener block below
+
+// -- INIT ----------------------------------------------
+document.addEventListener('DOMContentLoaded',function(){
+  var splashDone=false;
+  var splashMinDone=false;
+  var appReady=false;
+
+  function tryHideSplash(){
+    if(splashDone||!splashMinDone||!appReady)return;
+    splashDone=true;
+    var s=document.getElementById('splash-screen');
+    s.classList.add('hide');
+    setTimeout(function(){s.style.display='none';},500);
+  }
+
+  // Minimum 5 seconds
+  setTimeout(function(){splashMinDone=true;tryHideSplash();},5000);
+
+  // Wait for Firebase to be ready, then run app
+  waitDB(function(){
+    appReady=true;
+    tryHideSplash();
+    if(!checkSession()){document.getElementById('login-screen').style.display='flex';}
+  });
+});
+</script>
+<script src="js/rider-orders.js?v=2"></script>
+<script src="js/rider-map.js"></script>
+<script src="js/rider-location.js"></script>
+
+<!-- PWA INSTALL HANDLER — cross-device: Android, iOS, desktop -->
+<script>
+(function(){
+  var _deferred = null;
+  var _banner = null;
+  function getBanner(){ return _banner || (_banner = document.getElementById('pwa-install-banner')); }
+  function _isInstalled(){
+    return window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone===true;
+  }
+  function _isIOS(){ return /iphone|ipad|ipod/i.test(navigator.userAgent) && !window.MSStream; }
+
+  window.addEventListener('beforeinstallprompt', function(e){
+    e.preventDefault(); _deferred = e;
+    if(_isInstalled()) return;
+    var dismissed = localStorage.getItem('nk_rider_pwa_dismissed');
+    if(!dismissed || Date.now()-parseInt(dismissed) > 3*24*60*60*1000){
+      setTimeout(function(){
+        var b=getBanner(); if(b) b.classList.add('show');
+      }, 5000);
+    }
+  });
+
+  if(_isIOS() && !_isInstalled()){
+    var dismissed = localStorage.getItem('nk_rider_pwa_dismissed');
+    if(!dismissed || Date.now()-parseInt(dismissed) > 3*24*60*60*1000){
+      setTimeout(function(){
+        var b=getBanner(); if(!b) return;
+        var tip=document.getElementById('pwa-ios-tip'); if(tip) tip.style.display='block';
+        b.classList.add('show');
+      }, 6000);
+    }
+  }
+
+  window.installPWA = async function(){
+    if(_deferred){
+      _deferred.prompt();
+      var result = await _deferred.userChoice;
+      _deferred = null;
+      if(result && result.outcome==='accepted'){
+        var b=getBanner(); if(b) b.classList.remove('show');
+      }
+    } else if(_isIOS()){
+      var tip=document.getElementById('pwa-ios-tip'); if(tip) tip.style.display='block';
+    } else {
+      if(typeof toast==='function') toast('Open in Chrome for install option','info');
+    }
+  };
+  window.dismissPWABanner = function(){
+    var b=getBanner(); if(b) b.classList.remove('show');
+    localStorage.setItem('nk_rider_pwa_dismissed', Date.now());
+  };
+  window.addEventListener('appinstalled', function(){
+    _deferred=null;
+    var b=getBanner(); if(b) b.classList.remove('show');
+    if(typeof toast==='function') toast('✅ Nekta Rider installed!','success');
+  });
+})();
+</script>
+
+
+<!-- SW UPDATE LISTENER — auto-reloads page when new version deploys -->
+<script>
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('/sw.js', { updateViaCache: 'none' })
+    .then(function(reg) {
+      // Check for updates every 60 seconds while page is open
+      setInterval(function() { reg.update(); }, 60000);
+
+      reg.addEventListener('updatefound', function() {
+        var newSW = reg.installing;
+        if (!newSW) return;
+        newSW.addEventListener('statechange', function() {
+          if (newSW.state === 'activated') {
+            // New SW took over — reload silently to get fresh files
+            window.location.reload();
+          }
+        });
+      });
+    }).catch(function() {});
+
+  // Also reload when SW sends update message
+  navigator.serviceWorker.addEventListener('message', function(e) {
+    if (e.data && e.data.type === 'SW_UPDATED') {
+      window.location.reload();
+    }
+  });
+}
+</script>
+</body>
+</html>
+
+
+
+
+
+

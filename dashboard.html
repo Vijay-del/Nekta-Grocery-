@@ -1,0 +1,1234 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Nekta Admin</title>
+<script>
+// Session guard - verify admin is logged in
+(function(){
+  var role = localStorage.getItem('nk_dash_role') || sessionStorage.getItem('nk_dash_role');
+  var exp  = parseInt(localStorage.getItem('nk_dash_expires_at') || '0');
+  if(role !== 'admin' || (exp > 0 && Date.now() > exp)){
+    ['nk_dash_role','nk_dash_login_time','nk_dash_expires_at','nk_dash_token'].forEach(function(k){
+      localStorage.removeItem(k); sessionStorage.removeItem(k);
+    });
+    document.addEventListener('DOMContentLoaded', function(){
+      document.body.innerHTML = '<div style="font-family:sans-serif;text-align:center;padding:80px 24px"><div style="font-size:64px;margin-bottom:16px">⛔</div><h2 style="margin-bottom:8px">Access Denied</h2><p style="color:#666;margin-bottom:24px">Please login from the Nekta app first.</p><button onclick="window.close()" style="background:#4f46e5;color:#fff;border:none;padding:14px 28px;border-radius:10px;cursor:pointer;font-size:14px;font-weight:700">Close Tab</button></div>';
+    });
+  }
+})();
+</script>
+
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<!-- Firebase API Key set by environment or .env file -->
+<script src="js/firebase-app-compat.js"></script>
+<script src="js/firebase-firestore-compat.js"></script>
+<script src="js/firebase-auth-compat.js"></script>
+<script src="js/firebase-database-compat.js"></script>
+<script src="js/chart.umd.min.js"></script>
+<script src="js/xlsx.min.js"></script>
+<!-- Security: bcryptjs for secure admin PIN -->
+<script src="js/bcrypt.min.js"></script>
+<script src="js/config-loader.js"></script>
+<script src="js/firebase-config.js"></script>
+<script src="js/admin-auth.js"></script>
+<script src="js/products.js"></script>
+<script src="js/nekta-shops.js?v=97"></script>
+<script src="js/nekta-dashboard.js"></script>
+<script src="js/nekta-catalog-manager.js"></script>
+<script src="js/nekta-reports.js"></script>
+<script src="js/nekta-xlsx-exports.js"></script>
+<script src="js/nekta-home-editor.js"></script>
+<style>
+:root{
+  --bg:#0b0f19;--bg2:#111827;--bg3:#1a2234;--bg4:#1e2a40;
+  --green:#00e676;--green2:#00c853;--green3:rgba(0,230,118,.12);
+  --blue:#2979ff;--blue2:rgba(41,121,255,.15);
+  --red:#ff1744;--red2:rgba(255,23,68,.12);
+  --yellow:#ffd600;--purple:#d500f9;--orange:#ff6d00;
+  --text:#e8eaf6;--text2:#90a0b7;--text3:#4a5568;
+  --border:rgba(255,255,255,.07);
+  --r:12px;--font:'Space Grotesk',sans-serif;--mono:'JetBrains Mono',monospace;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{height:100%;background:var(--bg);color:var(--text);font-family:var(--font);overflow:hidden}
+::-webkit-scrollbar{width:4px;height:4px}
+::-webkit-scrollbar-thumb{background:var(--bg4);border-radius:2px}
+/* LOGIN */
+#login-screen{position:fixed;inset:0;background:var(--bg);display:flex;align-items:center;justify-content:center;z-index:9999}
+#login-screen.hidden{display:none}
+.login-card{background:var(--bg2);border:1px solid var(--border);border-radius:20px;padding:40px;width:360px;display:flex;flex-direction:column;gap:20px}
+.login-logo{display:flex;align-items:center;gap:12px}
+.login-logo .dot{width:12px;height:12px;background:var(--green);border-radius:50%;animation:pulse 2s infinite}
+.login-logo h1{font-size:28px;font-weight:700;letter-spacing:-1px}
+.login-logo h1 span{color:var(--green)}
+.login-tabs{display:flex;gap:4px;background:var(--bg3);border-radius:10px;padding:4px}
+.login-tab{flex:1;padding:8px;text-align:center;border-radius:8px;cursor:pointer;font-size:13px;font-weight:600;color:var(--text2);transition:.2s}
+.login-tab.on{background:var(--green);color:#000}
+.login-inp{display:flex;flex-direction:column;gap:6px}
+.login-inp label{font-size:12px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:.5px}
+input[type=text],input[type=password],input[type=number],input[type=tel]{background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:12px 14px;color:var(--text);font-family:var(--font);font-size:14px;outline:none;width:100%;transition:.2s}
+input:focus{border-color:var(--green)}
+.btn-primary{background:var(--green);color:#000;border:none;border-radius:10px;padding:13px;font-family:var(--font);font-size:14px;font-weight:700;cursor:pointer;transition:.2s;width:100%}
+.btn-primary:hover{background:var(--green2)}
+.btn-ghost{background:transparent;border:1px solid var(--border);border-radius:10px;padding:10px 16px;color:var(--text2);font-family:var(--font);font-size:13px;font-weight:600;cursor:pointer;transition:.2s}
+.btn-ghost:hover{border-color:var(--green);color:var(--green)}
+.login-err{color:var(--red);font-size:12px;text-align:center;min-height:18px}
+/* APP SHELL */
+#app{display:flex;height:100vh;overflow:hidden}
+#app.hidden{display:none}
+/* SIDEBAR */
+#sidebar{width:220px;background:var(--bg2);border-right:1px solid var(--border);display:flex;flex-direction:column;flex-shrink:0;overflow-y:auto;overflow-x:hidden}
+.sb-logo{padding:20px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px}
+.sb-logo .mark{width:32px;height:32px;background:var(--green);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:16px}
+.sb-logo h2{font-size:18px;font-weight:700}
+.sb-logo h2 span{color:var(--green)}
+.sb-section{padding:12px 12px 4px;font-size:10px;font-weight:700;color:var(--text3);letter-spacing:1.5px;text-transform:uppercase}
+.sb-item{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:10px;margin:1px 8px;cursor:pointer;color:var(--text2);font-size:13px;font-weight:500;transition:.15s;position:relative}
+.sb-item:hover{background:var(--bg3);color:var(--text)}
+.sb-item.on{background:var(--green3);color:var(--green)}
+.sb-item.on::before{content:'';position:absolute;left:-8px;top:50%;transform:translateY(-50%);width:3px;height:20px;background:var(--green);border-radius:0 2px 2px 0}
+.sb-item .ico{width:28px;height:28px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0}
+.sb-item.on .ico{background:var(--green3)}
+.sb-badge{background:var(--red);color:#fff;font-size:10px;font-weight:700;padding:2px 6px;border-radius:20px;margin-left:auto;min-width:18px;text-align:center}
+@keyframes badgePulse{0%,100%{transform:scale(1)}50%{transform:scale(1.25)}}
+.sb-footer{margin-top:auto;padding:12px;border-top:1px solid var(--border)}
+.sb-user{display:flex;align-items:center;gap:10px;padding:10px;border-radius:10px;cursor:pointer}
+.sb-user .ava{width:32px;height:32px;background:var(--green);border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:14px;color:#000;flex-shrink:0}
+.sb-user .info p:first-child{font-size:13px;font-weight:600}
+.sb-user .info p:last-child{font-size:11px;color:var(--text2)}
+/* MAIN */
+#main{flex:1;display:flex;flex-direction:column;overflow:hidden}
+#topbar{background:var(--bg2);border-bottom:1px solid var(--border);padding:0 24px;height:56px;display:flex;align-items:center;gap:16px;flex-shrink:0}
+#topbar h2{font-size:16px;font-weight:700;flex:1}
+.tb-pill{background:var(--bg3);border:1px solid var(--border);border-radius:20px;padding:6px 14px;font-size:12px;font-weight:600;color:var(--text2);display:flex;align-items:center;gap:6px;cursor:pointer}
+.live-badge{background:rgba(0,230,118,.15);color:var(--green);border:1px solid rgba(0,230,118,.3);padding:4px 10px;border-radius:20px;font-size:11px;font-weight:700;display:flex;align-items:center;gap:5px}
+#content{flex:1;overflow-y:auto;padding:20px 24px}
+.page{display:none}.page.on{display:block}
+/* KPI */
+.kpi-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:20px}
+.kpi{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);padding:20px;position:relative;overflow:hidden}
+.kpi::before{content:'';position:absolute;top:0;right:0;width:80px;height:80px;border-radius:50%;opacity:.08;transform:translate(20px,-20px)}
+.kpi.green::before{background:var(--green)}.kpi.blue::before{background:var(--blue)}
+.kpi.red::before{background:var(--red)}.kpi.yellow::before{background:var(--yellow)}
+.kpi.purple::before{background:var(--purple)}.kpi.orange::before{background:var(--orange)}
+.kpi-label{font-size:11px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:.8px;margin-bottom:8px}
+.kpi-val{font-size:28px;font-weight:700;font-family:var(--mono);letter-spacing:-1px;margin-bottom:4px}
+.kpi.green .kpi-val{color:var(--green)}.kpi.blue .kpi-val{color:var(--blue)}
+.kpi.red .kpi-val{color:var(--red)}.kpi.yellow .kpi-val{color:var(--yellow)}
+.kpi.purple .kpi-val{color:var(--purple)}.kpi.orange .kpi-val{color:var(--orange)}
+.kpi-sub{font-size:12px;color:var(--text2)}
+.kpi-icon{position:absolute;top:16px;right:16px;font-size:24px;opacity:.4}
+/* CARDS */
+.card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);padding:20px}
+.card-hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px}
+.card-title{font-size:14px;font-weight:700}
+.grid-2{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px}
+/* TABLE */
+.tbl-wrap{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th{text-align:left;padding:10px 12px;font-size:11px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.5px;border-bottom:1px solid var(--border)}
+td{padding:11px 12px;border-bottom:1px solid rgba(255,255,255,.03)}
+tr:hover td{background:rgba(255,255,255,.02)}
+/* STATUS PILLS */
+.status-pill{display:inline-flex;align-items:center;gap:5px;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700;white-space:nowrap}
+.sp-placed{background:rgba(255,214,0,.15);color:var(--yellow)}
+.sp-packing{background:rgba(41,121,255,.15);color:#64b5f6}
+.sp-assigned{background:rgba(213,0,249,.15);color:#e040fb}
+.sp-picked{background:rgba(255,109,0,.15);color:#ff9100}
+.sp-delivered{background:rgba(0,230,118,.15);color:var(--green)}
+.sp-cancelled{background:rgba(255,23,68,.15);color:var(--red)}
+.sp-online{background:rgba(0,230,118,.15);color:var(--green)}
+.sp-offline{background:rgba(144,160,183,.1);color:var(--text2)}
+.sp-busy{background:rgba(255,214,0,.15);color:var(--yellow)}
+.sp-low{background:rgba(255,23,68,.15);color:var(--red)}
+.sp-ok{background:rgba(0,230,118,.15);color:var(--green)}
+.sp-out{background:rgba(144,160,183,.1);color:var(--text3)}
+/* FORMS */
+.filter-bar{display:flex;gap:10px;margin-bottom:16px;flex-wrap:wrap}
+.filter-bar input,.filter-bar select{background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:9px 14px;color:var(--text);font-family:var(--font);font-size:13px;outline:none}
+.filter-bar input:focus,.filter-bar select:focus{border-color:var(--green)}
+.filter-bar select option{background:var(--bg3)}
+.filter-bar input{flex:1;min-width:180px}
+.btn-sm{padding:7px 14px;border-radius:9px;font-size:12px;font-weight:650;cursor:pointer;border:none;font-family:var(--font);transition:.15s;letter-spacing:-.3px}
+.btn-sm:active{transform:scale(.94);opacity:.9}
+.bg-green{background:var(--green);color:#000;font-weight:700}.bg-red{background:var(--red);color:#fff;font-weight:700}
+.bg-blue{background:var(--blue);color:#fff;font-weight:700}.bg-orange{background:var(--orange);color:#fff;font-weight:700}
+.bg-ghost{background:transparent;border:1px solid rgba(255,255,255,.12);color:var(--text2);font-weight:600}
+.bg-ghost:hover{border-color:var(--green);color:var(--green);background:rgba(0,230,118,.05)}
+.btn-icon{width:30px;height:30px;border-radius:8px;display:inline-flex;align-items:center;justify-content:center;cursor:pointer;border:none;font-size:13px}
+/* MODAL */
+.modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.7);backdrop-filter:blur(4px);z-index:500;display:none;align-items:center;justify-content:center}
+.modal-bg.on{display:flex}
+.modal{background:var(--bg2);border:1px solid var(--border);border-radius:16px;padding:28px;width:480px;max-width:95vw;max-height:90vh;overflow-y:auto;display:flex;flex-direction:column;gap:16px}
+.modal h3{font-size:16px;font-weight:700}
+.form-row{display:flex;gap:12px}
+.form-group{display:flex;flex-direction:column;gap:6px;flex:1}
+.form-group label{font-size:12px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:.4px}
+.form-group input,.form-group select,.form-group textarea{background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:10px 14px;color:var(--text);font-family:var(--font);font-size:13px;outline:none;width:100%}
+.form-group input:focus,.form-group select:focus,.form-group textarea:focus{border-color:var(--green)}
+.form-group textarea{resize:vertical;min-height:80px}
+.modal-footer{display:flex;gap:10px;justify-content:flex-end;margin-top:4px}
+/* TOAST */
+#toast-stack{position:fixed;bottom:24px;right:24px;z-index:9999;display:flex;flex-direction:column;gap:8px}
+.toast{background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:12px 18px;font-size:13px;font-weight:500;display:flex;align-items:center;gap:10px;animation:slideIn .3s ease;max-width:320px}
+.toast.success{border-color:rgba(0,230,118,.4);color:var(--green)}
+.toast.error{border-color:rgba(255,23,68,.4);color:var(--red)}
+.toast.info{border-color:rgba(41,121,255,.4);color:#64b5f6}
+.toast.warning{border-color:rgba(255,214,0,.4);color:var(--yellow)}
+/* MISC */
+.stock-bar-wrap{display:flex;align-items:center;gap:8px}
+.stock-bar{height:6px;flex:1;background:var(--bg3);border-radius:3px;overflow:hidden}
+.stock-bar-fill{height:100%;border-radius:3px;transition:.3s}
+.order-row{border:1px solid var(--border);border-radius:10px;padding:14px;margin-bottom:10px;background:var(--bg3)}
+.order-row-top{display:flex;align-items:center;gap:10px;margin-bottom:10px}
+.order-id{font-family:var(--mono);font-size:12px;font-weight:600;color:var(--text2)}
+.order-amt{font-size:16px;font-weight:700;color:var(--green);margin-left:auto}
+.order-row-mid{display:flex;gap:12px;font-size:12px;color:var(--text2);margin-bottom:10px;flex-wrap:wrap}
+.order-actions{display:flex;gap:8px;flex-wrap:wrap}
+.chart-box{position:relative;height:220px}
+.rider-card{background:var(--bg3);border:1px solid var(--border);border-radius:12px;padding:16px;display:flex;gap:14px;align-items:flex-start}
+.rider-ava{width:44px;height:44px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:18px;color:#000;flex-shrink:0}
+.rider-info{flex:1}
+.rider-info h4{font-size:14px;font-weight:700;margin-bottom:3px}
+.rider-info p{font-size:12px;color:var(--text2)}
+.rider-stats{display:flex;gap:16px;margin-top:8px}
+.rider-stat .val{font-size:16px;font-weight:700;font-family:var(--mono)}
+.rider-stat .lbl{font-size:10px;color:var(--text2);text-transform:uppercase;letter-spacing:.5px}
+.rider-actions{display:flex;flex-direction:column;gap:6px}
+.prod-img-placeholder{width:40px;height:40px;border-radius:8px;background:var(--bg3);display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0}
+.alert-strip{background:rgba(255,23,68,.08);border:1px solid rgba(255,23,68,.25);border-radius:10px;padding:12px 16px;display:flex;align-items:center;gap:10px;margin-bottom:16px;font-size:13px}
+.alert-strip span{color:var(--red);font-weight:600}
+.download-bar{display:flex;gap:10px;align-items:center;background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:12px 16px;margin-bottom:16px;flex-wrap:wrap}
+.download-bar span{font-size:13px;font-weight:600;margin-right:auto}
+.chart-period{display:flex;gap:6px}
+.chart-period button{padding:5px 12px;border-radius:8px;border:1px solid var(--border);background:transparent;color:var(--text2);font-family:var(--font);font-size:12px;font-weight:600;cursor:pointer}
+.chart-period button.on{background:var(--green);color:#000;border-color:var(--green)}
+.settings-row{display:flex;align-items:center;justify-content:space-between;padding:14px 0;border-bottom:1px solid var(--border)}
+.settings-row:last-child{border-bottom:none}
+.settings-row h4{font-size:14px;font-weight:600}
+.settings-row p{font-size:12px;color:var(--text2);margin-top:2px}
+.toggle{width:44px;height:24px;background:var(--bg3);border-radius:12px;cursor:pointer;position:relative;transition:.3s;flex-shrink:0}
+.toggle.on{background:var(--green)}
+.toggle::after{content:'';position:absolute;top:3px;left:3px;width:18px;height:18px;background:#fff;border-radius:50%;transition:.3s}
+.toggle.on::after{left:23px}
+.rt-dot{width:8px;height:8px;background:var(--green);border-radius:50%;animation:pulse 1.5s infinite;flex-shrink:0}
+#notif-panel{position:fixed;top:56px;right:0;width:320px;height:calc(100vh - 56px);background:var(--bg2);border-left:1px solid var(--border);z-index:300;transform:translateX(100%);transition:.3s;overflow-y:auto;padding:16px}
+#notif-panel.on{transform:translateX(0)}
+.notif-item{background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:12px;margin-bottom:8px;font-size:12px}
+.notif-item.unread{border-color:rgba(0,230,118,.3)}
+.rider-option{background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:12px;cursor:pointer;transition:.15s;display:flex;align-items:center;gap:12px;margin-bottom:8px}
+.rider-option:hover{border-color:var(--green)}
+.rider-option.sel{border-color:var(--green);background:var(--green3)}
+.empty{padding:40px;text-align:center;color:var(--text2)}
+.empty .ico{font-size:48px;margin-bottom:12px}
+.empty p{font-size:14px}
+.order-detail-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px}
+.detail-field{background:var(--bg3);border-radius:8px;padding:10px;font-size:13px;color:var(--text)}
+.items-table{background:var(--bg3);border-radius:8px;padding:12px;margin-top:6px}
+.item-row{display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border);font-size:13px;color:var(--text)}
+.item-row:last-child{border-bottom:none}
+.bill-row{display:flex;justify-content:space-between;padding:5px 0;font-size:13px;color:var(--text2)}
+.bill-total{display:flex;justify-content:space-between;padding-top:8px;font-size:15px;font-weight:700;color:var(--text);border-top:1px solid var(--border);margin-top:5px}
+.delivery-address{background:var(--bg3);border-radius:8px;padding:10px 12px;font-size:13px;color:var(--text);line-height:1.5}
+.status-timeline{background:var(--bg3);border-radius:8px;padding:12px}
+.timeline-row{display:flex;gap:10px;align-items:center;padding:5px 0;font-size:12px;color:var(--text)}
+.blink{animation:blink 1s infinite}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
+@keyframes slideIn{from{opacity:0;transform:translateX(20px)}to{opacity:1;transform:translateX(0)}}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+@keyframes spin{to{transform:rotate(360deg)}}
+@media(max-width:1100px){.kpi-grid{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:768px){#sidebar{width:60px}.sb-item span,.sb-section,.sb-logo h2,.sb-user .info{display:none}}
+/* HOME EDITOR */
+.he-card{border:1px solid var(--border);border-radius:12px;padding:12px;margin-bottom:8px;background:var(--bg3);display:flex;flex-direction:column;gap:8px}
+.he-card:hover{background:rgba(0,230,118,.02);border-color:rgba(0,230,118,.2)}
+.empty-state{text-align:center;padding:32px 20px;color:var(--text2);font-size:13px}
+.empty-state::before{content:'📭';font-size:32px;display:block;margin-bottom:8px}
+</style>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div id="login-screen">
+  <div class="login-card">
+    <div class="login-logo" onclick="if(typeof handleLogoClick==='function') handleLogoClick()" style="cursor:pointer" title="Click 7 times for admin unlock">
+      <img src="images/nektaIcon.svg" alt="Nekta" style="width:52px;height:52px;border-radius:14px;object-fit:cover;flex-shrink:0">
+      <div>
+        <h1 style="font-size:26px;font-weight:700;letter-spacing:-1px;line-height:1">Nekta<span style="color:var(--green)">.</span></h1>
+        <p style="font-size:11px;color:var(--text2);font-weight:500;margin-top:2px">Admin Dashboard</p>
+      </div>
+    </div>
+    <p style="font-size:13px;color:var(--text2);margin-top:-8px">Who are you?</p>
+    <div class="login-tabs" style="display:flex">
+      <div class="login-tab on" id="tab-admin" onclick="setLoginRole('admin')">&#128272; Admin</div>
+      <div class="login-tab" id="tab-rider" onclick="setLoginRole('rider')">&#128757; Rider</div>
+    </div>
+    <div id="admin-fields" style="display:flex;flex-direction:column;gap:14px">
+      <form onsubmit="return false" autocomplete="on">
+      <div class="login-inp"><label>Admin Password</label>
+        <input type="password" id="admin-pass" placeholder="Enter password" onkeydown="if(event.key==='Enter')doLogin()">
+      </div>
+      </form>
+    </div>
+    <div id="rider-fields" style="display:none;flex-direction:column;gap:14px">
+      <div class="login-inp"><label>Phone Number</label>
+        <input type="tel" id="rider-phone" placeholder="10-digit mobile" maxlength="10" onkeydown="if(event.key==='Enter')doLogin()">
+      </div>
+      <div class="login-inp"><label>Your Name</label>
+        <input type="text" id="rider-name" placeholder="Your full name" onkeydown="if(event.key==='Enter')doLogin()">
+      </div>
+    </div>
+    <button class="btn-primary" onclick="doLogin()" id="login-btn">&#128640; Enter Dashboard</button>
+    <p class="login-err" id="login-err"></p>
+  </div>
+</div>
+
+<!-- APP -->
+<div id="app" class="hidden">
+  <div id="sidebar">
+    <div class="sb-logo">
+      <img src="images/nektaIcon.svg" alt="Nekta" style="width:32px;height:32px;border-radius:9px;object-fit:cover;flex-shrink:0">
+      <h2>Nekta<span>.</span></h2>
+    </div>
+    <div id="sb-admin-nav">
+      <div class="sb-section">Overview</div>
+      <div class="sb-item on" onclick="showPage('overview',this)"><div class="ico">&#128202;</div><span>Dashboard</span></div>
+      <div class="sb-item" onclick="showPage('livecontrol',this)"><div class="ico">&#128312;</div><span>Live Control</span><span class="sb-badge" id="sb-live-badge" style="display:none;background:#ef4444">0</span></div>
+      <div class="sb-item" onclick="showPage('orders',this)"><div class="ico">&#128230;</div><span>Orders</span><span class="sb-badge" id="sb-ord-badge" style="display:none">0</span></div>
+      <div class="sb-section">Operations</div>
+      <div class="sb-item" onclick="showPage('riders',this)"><div class="ico">&#128757;</div><span>Riders</span></div>
+      <div class="sb-item" onclick="showPage('shops',this)"><div class="ico">&#127978;</div><span>Shops</span></div>
+      <div class="sb-item" onclick="showPage('sellers',this)"><div class="ico">&#128101;</div><span>Sellers</span></div>
+      <div class="sb-item" onclick="showPage('inventory',this)"><div class="ico">&#128230;</div><span>Inventory</span><span class="sb-badge sp-low" id="sb-low-badge" style="display:none">!</span></div>
+      <div class="sb-item" onclick="window.open('barcode-scanner.html','_blank')"><div class="ico">&#128243;</div><span>Barcode Scanner</span></div>
+      <div class="sb-section">Insights</div>
+      <div class="sb-item" onclick="showPage('analytics',this)"><div class="ico">&#128200;</div><span>Analytics</span></div>
+      <div class="sb-item" onclick="showPage('reports',this)"><div class="ico">&#128196;</div><span>Reports</span></div>
+      <div class="sb-item" onclick="showPage('customers',this)"><div class="ico">&#128101;</div><span>Customers</span></div>
+      <div class="sb-item" onclick="showPage('contacts',this);loadDashboardContacts()"><div class="ico">&#128172;</div><span>Contacts</span><span class="sb-badge" id="sb-contacts-badge" style="display:none;background:#ef4444">0</span></div>
+      <div class="sb-section">Config</div>
+      <div class="sb-item" onclick="showPage('homepage',this)"><div class="ico">&#127968;</div><span>Home Control</span></div>
+      <div class="sb-item" onclick="showPage('home-editor',this)"><div class="ico">&#9998;&#65039;</div><span>User Editor</span></div>
+      <div class="sb-item" onclick="showPage('promotions',this)"><div class="ico">&#127991;</div><span>Promotions</span></div>
+      <div class="sb-item" onclick="showPage('settings',this)"><div class="ico">&#9881;</div><span>Settings</span></div>
+    </div>
+    <div id="sb-rider-nav" style="display:none">
+      <div class="sb-section">My Tasks</div>
+      <div class="sb-item on" onclick="showPage('rider-home',this)"><div class="ico">&#127968;</div><span>My Orders</span></div>
+      <div class="sb-item" onclick="showPage('rider-earnings',this)"><div class="ico">&#128176;</div><span>Earnings</span></div>
+      <div class="sb-item" onclick="showPage('rider-history',this)"><div class="ico">&#128336;</div><span>History</span></div>
+    </div>
+    <div class="sb-footer">
+      <div class="sb-user" onclick="logout()">
+        <div class="ava" id="user-ava">A</div>
+        <div class="info"><p id="user-name">Admin</p><p id="user-role-label">Administrator</p></div>
+      </div>
+    </div>
+  </div>
+
+  <div id="main">
+    <div id="topbar">
+      <h2 id="page-title">Dashboard</h2>
+      <div class="live-badge"><div class="rt-dot"></div> LIVE</div>
+      <div class="tb-pill" onclick="toggleNotif()">&#128276; <span id="notif-count">0</span></div>
+      <div class="tb-pill" id="tb-time">--:--</div>
+    </div>
+    <div id="content">
+
+<!-- OVERVIEW -->
+<div class="page on" id="page-overview">
+  <div class="kpi-grid">
+    <div class="kpi green"><div class="kpi-label">Today Revenue</div><div class="kpi-val" id="kpi-rev">&#8377;0</div><div class="kpi-sub" id="kpi-rev-sub">0 orders today</div><div class="kpi-icon">&#128176;</div></div>
+    <div class="kpi blue"><div class="kpi-label">Active Orders</div><div class="kpi-val" id="kpi-active">0</div><div class="kpi-sub" id="kpi-active-sub">Needs attention</div><div class="kpi-icon">&#128230;</div></div>
+    <div class="kpi yellow"><div class="kpi-label">Riders Online</div><div class="kpi-val" id="kpi-riders">0</div><div class="kpi-sub" id="kpi-riders-sub">0 on delivery</div><div class="kpi-icon">&#128757;</div></div>
+    <div class="kpi red"><div class="kpi-label">Low Stock</div><div class="kpi-val" id="kpi-low">0</div><div class="kpi-sub">Items need restock</div><div class="kpi-icon">&#9888;</div></div>
+  </div>
+  <div id="low-stock-alert" style="display:none"></div>
+
+  <!-- Today breakdown row -->
+  <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:20px">
+    <div style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);padding:16px;text-align:center">
+      <div style="font-size:11px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.6px;margin-bottom:6px">Placed</div>
+      <div style="font-size:26px;font-weight:800;font-family:var(--mono);color:var(--yellow)" id="ov-placed">0</div>
+    </div>
+    <div style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);padding:16px;text-align:center">
+      <div style="font-size:11px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.6px;margin-bottom:6px">Packing</div>
+      <div style="font-size:26px;font-weight:800;font-family:var(--mono);color:#64b5f6" id="ov-packing">0</div>
+    </div>
+    <div style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);padding:16px;text-align:center">
+      <div style="font-size:11px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.6px;margin-bottom:6px">On the Way</div>
+      <div style="font-size:26px;font-weight:800;font-family:var(--mono);color:var(--orange)" id="ov-onway">0</div>
+    </div>
+    <div style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);padding:16px;text-align:center">
+      <div style="font-size:11px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.6px;margin-bottom:6px">Delivered Today</div>
+      <div style="font-size:26px;font-weight:800;font-family:var(--mono);color:var(--green)" id="ov-delivered">0</div>
+    </div>
+  </div>
+
+  <!-- Revenue chart + quick actions -->
+  <div class="grid-2">
+    <div class="card" style="grid-column:span 2">
+      <div class="card-hdr"><span class="card-title">&#128200; Revenue — Last 7 Days</span>
+        <div style="display:flex;gap:8px;align-items:center">
+          <div class="chart-period">
+            <button class="on" onclick="loadRevenueChart('7d',this)">7D</button>
+            <button onclick="loadRevenueChart('30d',this)">30D</button>
+          </div>
+          <button class="btn-sm bg-ghost" onclick="showPage('livecontrol',document.querySelector('.sb-item:nth-child(2)'))">&#128312; Go to Live Control</button>
+        </div>
+      </div>
+      <div class="chart-box" style="height:260px"><canvas id="chart-revenue"></canvas></div>
+    </div>
+  </div>
+
+  <!-- Bottom row: top products + avg delivery time -->
+  <div class="grid-2" style="margin-top:0">
+    <div class="card">
+      <div class="card-hdr"><span class="card-title">&#127947; Top Selling Today</span></div>
+      <div id="ov-top-today"><div class="empty" style="padding:20px"><p style="font-size:13px">No deliveries yet today</p></div></div>
+    </div>
+    <div class="card">
+      <div class="card-hdr"><span class="card-title">&#128202; Today at a Glance</span></div>
+      <div id="ov-glance"><div class="empty" style="padding:20px"><p style="font-size:13px">Loading...</p></div></div>
+    </div>
+  </div>
+</div>
+
+<!-- ORDERS -->
+<!-- LIVE CONTROL CENTER -->
+<div class="page" id="page-livecontrol">
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:10px">
+    <div>
+      <h3 style="font-size:16px;font-weight:700;margin:0">&#128312; Live Control Center</h3>
+      <div style="font-size:11px;color:var(--text2);margin-top:2px" id="lc-last-update">Connecting...</div>
+    </div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap">
+      <button class="btn-sm bg-ghost" onclick="refreshLiveControl()">&#128260; Refresh</button>
+      <button class="btn-sm bg-green" onclick="openBroadcast()">&#128226; Broadcast</button>
+    </div>
+  </div>
+
+  <!-- KPI Strip -->
+  <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin-bottom:16px">
+    <div class="kpi green" style="padding:10px;cursor:pointer" onclick="showPage('orders',this)">
+      <div class="kpi-label">New Orders</div>
+      <div class="kpi-val" id="lc-new-orders" style="font-size:24px;color:var(--yellow)">0</div>
+    </div>
+    <div class="kpi blue" style="padding:10px">
+      <div class="kpi-label">Active Orders</div>
+      <div class="kpi-val" id="lc-active-orders" style="font-size:24px">0</div>
+    </div>
+    <div class="kpi green" style="padding:10px">
+      <div class="kpi-label">Riders Online</div>
+      <div class="kpi-val" id="lc-riders-online" style="font-size:24px;color:var(--green)">0</div>
+    </div>
+    <div class="kpi" style="padding:10px;background:var(--bg2)">
+      <div class="kpi-label">Delivering</div>
+      <div class="kpi-val" id="lc-delivering" style="font-size:24px;color:var(--orange)">0</div>
+    </div>
+    <div class="kpi green" style="padding:10px">
+      <div class="kpi-label">Today Revenue</div>
+      <div class="kpi-val" id="lc-revenue" style="font-size:20px">&#8377;0</div>
+    </div>
+  </div>
+
+  <!-- Two-column layout: Orders | Riders -->
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
+
+    <!-- LEFT: Active Orders -->
+    <div>
+      <div style="font-size:12px;font-weight:800;color:var(--text2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">
+        &#128230; Active Orders
+        <span style="font-size:10px;font-weight:600;color:var(--text3);text-transform:none;margin-left:6px">auto-updates</span>
+      </div>
+      <div id="lc-orders-list" style="display:flex;flex-direction:column;gap:8px;max-height:600px;overflow-y:auto"></div>
+    </div>
+
+    <!-- RIGHT: Live Riders -->
+    <div>
+      <div style="font-size:12px;font-weight:800;color:var(--text2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">
+        &#128757; Live Riders
+        <span style="font-size:10px;font-weight:600;color:var(--text3);text-transform:none;margin-left:6px">GPS tracked</span>
+      </div>
+      <div id="lc-riders-list" style="display:flex;flex-direction:column;gap:8px;max-height:280px;overflow-y:auto;margin-bottom:14px"></div>
+
+      <!-- Recent Customers -->
+      <div style="font-size:12px;font-weight:800;color:var(--text2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">
+        &#128101; Recent Customers
+      </div>
+      <div id="lc-customers-list" style="display:flex;flex-direction:column;gap:6px;max-height:280px;overflow-y:auto"></div>
+    </div>
+  </div>
+</div>
+
+<div class="page" id="page-orders">
+  <div class="download-bar">
+    <span>&#128230; Orders Management</span>
+    <select id="dl-period" style="background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:6px 10px;color:var(--text);font-family:var(--font);font-size:12px">
+      <option value="today">Today</option><option value="week">This Week</option><option value="all">All Time</option>
+    </select>
+    <button class="btn-sm bg-green" onclick="downloadOrders()">&#11015; .xlsx</button>
+  </div>
+  <!-- Period filter tabs -->
+  <div style="display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap;align-items:center">
+    <button id="ord-tab-today" class="btn-sm bg-green" onclick="setOrderPeriod('today')">Today</button>
+    <button id="ord-tab-week" class="btn-sm bg-ghost" onclick="setOrderPeriod('week')">This Week</button>
+    <button id="ord-tab-all" class="btn-sm bg-ghost" onclick="setOrderPeriod('all')">All Time</button>
+    <button id="ord-tab-date" class="btn-sm bg-ghost" onclick="setOrderPeriod('date')">&#128197; By Date</button>
+    <input type="date" id="ord-date-pick" style="display:none;background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:7px 12px;color:var(--text);font-family:var(--font);font-size:13px;outline:none" onchange="filterOrders()">
+    <span id="ord-period-count" style="font-size:12px;color:var(--text2);margin-left:4px"></span>
+  </div>
+  <div class="filter-bar">
+    <input type="text" id="ord-search" placeholder="Search name, phone, ID..." oninput="filterOrders()">
+    <select id="ord-status" onchange="filterOrders()" style="background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:9px 14px;color:var(--text);font-family:var(--font);font-size:13px;outline:none">
+      <option value="">All Status</option>
+      <option value="placed">Placed</option><option value="packing">Packing</option>
+      <option value="assigned">Assigned</option><option value="picked">On Way</option>
+      <option value="delivered">Delivered</option><option value="cancelled">Cancelled</option>
+    </select>
+    <select id="ord-source" onchange="filterOrders()" style="background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:9px 14px;color:var(--text);font-family:var(--font);font-size:13px;outline:none">
+      <option value="all">All Orders</option>
+      <option value="nekta">Nekta Orders</option>
+      <option value="shop">Shop Orders</option>
+    </select>
+  </div>
+  <div id="orders-list"></div>
+</div>
+
+<!-- RIDERS -->
+<div class="page" id="page-riders">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;flex-wrap:wrap;gap:8px">
+    <h3 style="font-size:16px;font-weight:700">🛵 Rider Management
+      <span style="display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:600;color:var(--green);margin-left:10px">
+        <span style="width:7px;height:7px;border-radius:50%;background:var(--green);animation:pulse 1.5s infinite;display:inline-block"></span>LIVE
+      </span>
+    </h3>
+    <div style="display:flex;gap:8px;flex-wrap:wrap">
+      <button class="btn-sm" id="rain-toggle-btn" style="background:rgba(21,101,192,.12);color:#1565C0;border:1px solid rgba(21,101,192,.2)" onclick="toggleGlobalRain()">🌧️ Rain Incentive</button>
+      <button class="btn-sm" style="background:rgba(244,67,54,.12);color:#f44336;border:1px solid rgba(244,67,54,.2)" onclick="checkDeactivatedRiders()" title="Check for deactivated riders">⚠️ Deactivated</button>
+      <button class="btn-sm bg-green" onclick="openAddRider()">+ Add Rider</button>
+    </div>
+  </div>
+  <!-- Activity Summary Row -->
+  <div id="riders-activity-row" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:8px;margin-bottom:14px">
+    <div style="background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:12px;text-align:center">
+      <div style="font-size:10px;color:var(--text2);font-weight:700;text-transform:uppercase;margin-bottom:4px">Online Now</div>
+      <div style="font-size:22px;font-weight:800;color:var(--green)" id="ra-online">0</div>
+    </div>
+    <div style="background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:12px;text-align:center">
+      <div style="font-size:10px;color:var(--text2);font-weight:700;text-transform:uppercase;margin-bottom:4px">Delivering</div>
+      <div style="font-size:22px;font-weight:800;color:var(--yellow)" id="ra-busy">0</div>
+    </div>
+    <div style="background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:12px;text-align:center">
+      <div style="font-size:10px;color:var(--text2);font-weight:700;text-transform:uppercase;margin-bottom:4px">Today Earnings</div>
+      <div style="font-size:22px;font-weight:800;color:var(--green)" id="ra-earn">₹0</div>
+    </div>
+    <div style="background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:12px;text-align:center">
+      <div style="font-size:10px;color:var(--text2);font-weight:700;text-transform:uppercase;margin-bottom:4px">Today Orders</div>
+      <div style="font-size:22px;font-weight:800" id="ra-orders">0</div>
+    </div>
+    <div style="background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:12px;text-align:center">
+      <div style="font-size:10px;color:var(--text2);font-weight:700;text-transform:uppercase;margin-bottom:4px">Rain Bonus</div>
+      <div style="font-size:18px;font-weight:800;color:#1565C0" id="ra-rain">Off</div>
+    </div>
+  </div>
+  <div id="riders-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:16px"></div>
+</div>
+
+<!-- PRODUCTS -->
+<!-- INVENTORY (merged Products + Stock) -->
+<div class="page" id="page-inventory">
+  <!-- Header -->
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;flex-wrap:wrap;gap:10px">
+    <h3 style="font-size:16px;font-weight:700">&#128230; Inventory</h3>
+    <div style="display:flex;gap:8px;flex-wrap:wrap">
+      <button class="btn-sm bg-ghost" onclick="openBulkUpload()">&#128228; Bulk Upload</button>
+      <button class="btn-sm bg-ghost" onclick="openBulkUpdate()">&#128260; Bulk Update</button>
+      <button class="btn-sm bg-ghost" onclick="exportInventory()">&#11015; Export</button>
+      <button class="btn-sm bg-blue" onclick="window.open('barcode-scanner.html','_blank')">&#128243; Scan Barcode</button>
+      <button class="btn-sm" style="background:rgba(213,0,249,.15);color:#e040fb;border:1px solid rgba(213,0,249,.3)" onclick="openManageCategories()">&#127991; Categories</button>
+      <button class="btn-sm" style="background:rgba(255,23,68,.15);color:var(--red);border:1px solid rgba(255,23,68,.3)" onclick="openDuplicateManager()">&#128269; Find Duplicates</button>
+      <button class="btn-sm bg-green" onclick="openAddProduct()">+ Add Product</button>
+    </div>
+  </div>
+  <!-- KPI strip -->
+  <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:14px">
+    <div class="kpi green" style="padding:12px"><div class="kpi-label">Total Products</div><div class="kpi-val" style="font-size:22px" id="inv-total-products">0</div></div>
+    <div class="kpi yellow" style="padding:12px"><div class="kpi-label">Low Stock</div><div class="kpi-val" style="font-size:22px" id="inv-low-stock">0</div></div>
+    <div class="kpi red" style="padding:12px"><div class="kpi-label">Out of Stock</div><div class="kpi-val" style="font-size:22px" id="inv-out-stock">0</div></div>
+    <div class="kpi blue" style="padding:12px"><div class="kpi-label">Stock Value</div><div class="kpi-val" style="font-size:18px" id="inv-total-value">&#8377;0</div></div>
+  </div>
+  <!-- Filters -->
+  <div class="filter-bar" style="margin-bottom:10px;display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+    <input type="text" id="inv-search" placeholder="Search by name, barcode, category..." oninput="renderInventory()" style="flex:1;min-width:180px">
+    <select id="inv-category-filter" onchange="renderInventory()" style="background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:8px 12px;color:var(--text);font-family:var(--font);font-size:12px">
+      <option value="">All Categories</option>
+    </select>
+    <select id="inv-stock-filter" onchange="renderInventory()" style="background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:8px 12px;color:var(--text);font-family:var(--font);font-size:12px">
+      <option value="">All Stock</option>
+      <option value="instock">In Stock</option>
+      <option value="low">Low Stock</option>
+      <option value="out">Out of Stock</option>
+    </select>
+    <span id="inv-count" style="font-size:12px;color:var(--text2);white-space:nowrap"></span>
+  </div>
+  <!-- Bulk action bar -->
+  <div id="inv-bulk-bar" style="display:none;background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:8px 14px;margin-bottom:10px;align-items:center;gap:10px;flex-wrap:wrap">
+    <span id="inv-bulk-count" style="font-size:12px;font-weight:700;color:var(--text2)">0 selected</span>
+    <button class="btn-sm bg-green" onclick="bulkUpdateStock()">&#128260; Set Stock</button>
+    <button class="btn-sm bg-red" onclick="bulkDeleteSelected()">&#128465; Delete</button>
+    <button class="btn-sm bg-ghost" onclick="clearInvSelection()">Clear</button>
+  </div>
+  <!-- Table -->
+  <div class="card"><div class="tbl-wrap">
+    <table><thead><tr>
+      <th style="width:36px"><input type="checkbox" id="inv-select-all" onchange="toggleSelectAllInv(this)" style="cursor:pointer;width:15px;height:15px"></th>
+      <th>Product</th><th>Category</th><th>Price</th><th>Half</th>
+      <th style="text-align:center">Stock</th><th>Level</th><th>Status</th><th>Actions</th>
+    </tr></thead>
+    <tbody id="inventory-tbody"></tbody></table>
+  </div></div>
+</div>
+
+<!-- ANALYTICS -->
+<!-- ANALYTICS -->
+<div class="page" id="page-analytics">
+  <div class="kpi-grid">
+    <div class="kpi green"><div class="kpi-label">Total Revenue</div><div class="kpi-val" id="ana-total">&#8377;0</div><div class="kpi-sub" id="ana-total-sub">All time</div><div class="kpi-icon">&#128176;</div></div>
+    <div class="kpi blue"><div class="kpi-label">Total Orders</div><div class="kpi-val" id="ana-orders">0</div><div class="kpi-sub">All time</div><div class="kpi-icon">&#128230;</div></div>
+    <div class="kpi purple"><div class="kpi-label">Avg Order Value</div><div class="kpi-val" id="ana-aov">&#8377;0</div><div class="kpi-sub">Per order</div><div class="kpi-icon">&#128202;</div></div>
+    <div class="kpi orange"><div class="kpi-label">Delivery Rate</div><div class="kpi-val" id="ana-del">0%</div><div class="kpi-sub">Success rate</div><div class="kpi-icon">&#9989;</div></div>
+  </div>
+  <div class="grid-2">
+    <div class="card"><div class="card-hdr"><span class="card-title">Orders by Status</span></div><div class="chart-box"><canvas id="chart-status"></canvas></div></div>
+    <div class="card"><div class="card-hdr"><span class="card-title">Top Categories</span></div><div class="chart-box"><canvas id="chart-cats"></canvas></div></div>
+  </div>
+  <div class="card">
+    <div class="card-hdr"><span class="card-title">Order Trend</span>
+      <div class="chart-period">
+        <button class="on" onclick="loadTrendChart('7d',this)">7D</button>
+        <button onclick="loadTrendChart('30d',this)">30D</button>
+        <button onclick="loadTrendChart('90d',this)">3M</button>
+      </div>
+    </div>
+    <div class="chart-box" style="height:280px"><canvas id="chart-trend"></canvas></div>
+  </div>
+  <div class="grid-2">
+    <div class="card"><div class="card-hdr"><span class="card-title">&#127947; Top Products</span></div><div id="top-products-list"></div></div>
+    <div class="card"><div class="card-hdr"><span class="card-title">&#9200; Hourly Heatmap</span></div><div class="chart-box"><canvas id="chart-hourly"></canvas></div></div>
+  </div>
+</div>
+
+<!-- CUSTOMERS -->
+<div class="page" id="page-customers">
+  <div class="download-bar"><span>&#128101; Customers</span><button class="btn-sm bg-green" onclick="downloadCustomers()">&#11015; .xlsx</button></div>
+  <div class="filter-bar"><input type="text" id="cust-search" placeholder="Search name or phone..." oninput="filterCustomers()"></div>
+  <div class="card"><div class="tbl-wrap">
+    <table><thead><tr><th>Customer</th><th>Phone</th><th>Orders</th><th>Spent</th><th>Last Order</th><th>Actions</th></tr></thead>
+    <tbody id="customers-tbody"></tbody></table>
+  </div></div>
+</div>
+
+<!-- CONTACTS -->
+<div class="page" id="page-contacts">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:12px">
+    <div>
+      <h3 style="font-size:16px;font-weight:700;margin:0">&#128172; Contact Requests</h3>
+      <div style="font-size:11px;color:var(--text2);margin-top:2px">Messages from users</div>
+    </div>
+    <button class="btn-sm bg-green" onclick="loadDashboardContacts()">&#128260; Refresh</button>
+  </div>
+  <div style="display:flex;gap:6px;margin-bottom:14px;flex-wrap:wrap">
+    <button class="sb-item on" data-filter="all" onclick="filterDashboardContacts('all',this)" style="padding:6px 14px;border-radius:18px;border:1.5px solid var(--border);background:var(--bg2);color:var(--text);cursor:pointer;font-size:12px;font-weight:600">All</button>
+    <button class="sb-item" data-filter="new" onclick="filterDashboardContacts('new',this)" style="padding:6px 14px;border-radius:18px;border:1.5px solid var(--border);background:var(--bg2);color:var(--text);cursor:pointer;font-size:12px;font-weight:600">🆕 New</button>
+    <button class="sb-item" data-filter="support" onclick="filterDashboardContacts('support',this)" style="padding:6px 14px;border-radius:18px;border:1.5px solid var(--border);background:var(--bg2);color:var(--text);cursor:pointer;font-size:12px;font-weight:600">🆘 Support</button>
+    <button class="sb-item" data-filter="seller" onclick="filterDashboardContacts('seller',this)" style="padding:6px 14px;border-radius:18px;border:1.5px solid var(--border);background:var(--bg2);color:var(--text);cursor:pointer;font-size:12px;font-weight:600">🏪 Sellers</button>
+    <button class="sb-item" data-filter="rider" onclick="filterDashboardContacts('rider',this)" style="padding:6px 14px;border-radius:18px;border:1.5px solid var(--border);background:var(--bg2);color:var(--text);cursor:pointer;font-size:12px;font-weight:600">🛵 Riders</button>
+  </div>
+  <div id="db-contacts-list" style="display:flex;flex-direction:column;gap:10px">
+    <div style="text-align:center;padding:40px;color:var(--text3)">📭 Tap Refresh to load messages</div>
+  </div>
+</div>
+
+<!-- SETTINGS -->
+<div class="page" id="page-settings">
+  <div class="grid-2">
+    <div class="card">
+      <div class="card-title" style="margin-bottom:16px">&#127978; Store Settings</div>
+      <div class="settings-row"><div><h4>Store Open/Close</h4><p>Toggle availability</p></div><div class="toggle on" id="tog-store" onclick="toggleSetting('store',this)"></div></div>
+      <div style="background:rgba(239,68,68,.08);padding:12px;border-radius:10px;border-left:3px solid #ef4444;margin-top:12px;margin-bottom:12px"><label style="display:block;font-weight:700;color:#7f1d1d;margin-bottom:8px">Closed Message</label><p style="font-size:11px;color:#991b1b;margin-bottom:8px">Shown to customers when store is closed</p><input type="text" id="store-closed-msg" placeholder="e.g. Closed for holiday. Opens tomorrow 8am!" style="width:100%;background:#fff;border:1px solid #fecaca;padding:8px 10px;border-radius:6px;font-size:12px;font-family:var(--font);"></div>
+      <button class="btn-primary" style="margin-bottom:16px;width:100%" onclick="saveStoreStatus()">💾 Save Store Status</button>
+      <div class="settings-row"><div><h4>Express Mode</h4><p>10-min delivery</p></div><div class="toggle" id="tog-express" onclick="toggleSetting('express',this)"></div></div>
+      <div class="settings-row"><div><h4>Order Alerts</h4><p>Sound on new order</p></div><div class="toggle on" id="tog-sound" onclick="toggleSetting('sound',this)"></div></div>
+      <div class="settings-row"><div><h4>Auto-confirm</h4><p>Skip manual confirm</p></div><div class="toggle" id="tog-autoconf" onclick="toggleSetting('autoconf',this)"></div></div>
+    </div>
+    <div class="card">
+      <div class="card-title" style="margin-bottom:16px">&#128176; Pricing</div>
+      <div class="form-group" style="margin-bottom:12px"><label>Min Order (&#8377;)</label><input type="number" id="set-minord" value="100" onchange="saveSetting('minOrd',this.value)"></div>
+      <div class="form-group" style="margin-bottom:12px"><label>Base Delivery (&#8377;)</label><input type="number" id="set-delbase" value="20" onchange="saveSetting('delBase',this.value)"></div>
+      <div class="form-group"><label>Low Stock Threshold</label><input type="number" id="set-lowstock" value="10" onchange="saveSetting('lowStockThreshold',this.value)"></div>
+    </div>
+    <div class="card">
+      <div class="card-title" style="margin-bottom:16px">&#128226; Broadcast</div>
+      <div class="form-group" style="margin-bottom:12px"><label>Message</label><textarea id="broadcast-msg" placeholder="e.g. Store closed today..."></textarea></div>
+      <div class="form-group" style="margin-bottom:12px"><label>Type</label>
+        <select id="broadcast-type" style="background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:10px 14px;color:var(--text);font-family:var(--font);font-size:13px">
+          <option value="info">Info</option><option value="warning">Warning</option><option value="success">Offer</option>
+        </select>
+      </div>
+      <button class="btn-primary" onclick="sendBroadcast()">Send Broadcast</button>
+    </div>
+    <div class="card">
+      <div class="card-title" style="margin-bottom:16px">&#128274; Change Password</div>
+      <form onsubmit="return false" autocomplete="new-password">
+      <div class="form-group" style="margin-bottom:12px"><label>Current</label><input type="password" id="pass-cur" autocomplete="current-password"></div>
+      <div class="form-group" style="margin-bottom:12px"><label>New</label><input type="password" id="pass-new" autocomplete="new-password"></div>
+      <div class="form-group" style="margin-bottom:12px"><label>Confirm</label><input type="password" id="pass-confirm" autocomplete="new-password"></div>
+      </form>
+      <button class="btn-primary" onclick="changePassword()">Update Password</button>
+    </div>
+  </div>
+</div>
+
+<!-- HOME CONTROL -->
+<div class="page" id="page-homepage">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px">
+    <h3 style="font-size:16px;font-weight:700">&#127968; Home Page Control</h3>
+    <div style="display:flex;gap:10px">
+      <button class="btn-sm bg-ghost" onclick="window.open('./index.html','_blank')">&#128065; Preview</button>
+      <button class="btn-sm bg-green" onclick="saveHomePageSettings()">&#128190; Save &amp; Push</button>
+    </div>
+  </div>
+  <div class="card" style="margin-bottom:16px">
+    <div class="card-hdr"><span class="card-title">&#127912; Hero Sliders</span><button class="btn-sm bg-green" onclick="addSlide()">+ Add</button></div>
+    <div id="slides-list"></div>
+  </div>
+  <div class="card" style="margin-bottom:16px">
+    <div class="card-hdr"><span class="card-title">&#128203; Home Sections</span></div>
+    <div id="sections-list"></div>
+  </div>
+  <div class="card" style="margin-bottom:16px">
+    <div class="card-hdr"><span class="card-title">&#11088; Featured Products</span><button class="btn-sm bg-green" onclick="openFeaturedPicker()">+ Add</button></div>
+    <div id="featured-list"></div>
+  </div>
+  <div class="card">
+    <div class="card-hdr"><span class="card-title">&#127991; Offer Banners</span><button class="btn-sm bg-green" onclick="addOfferBanner()">+ Add</button></div>
+    <div id="banners-list"></div>
+    <div style="margin-top:12px"><button class="btn-primary" onclick="saveHomePageSettings()">&#128190; Save &amp; Push to App</button></div>
+  </div>
+</div>
+
+<!-- USER SIDE EDITOR -->
+<div class="page" id="page-home-editor">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px">
+    <h3 style="font-size:16px;font-weight:700">✏️ User Side Editor</h3>
+    <div style="display:flex;gap:10px">
+      <button class="btn-sm bg-ghost" onclick="window.open('./index.html','_blank')">👁️ Preview</button>
+      <button class="btn-sm bg-green" onclick="saveHomeEditorChanges()">💾 Save & Push</button>
+    </div>
+  </div>
+  
+  <div class="card" style="margin-bottom:16px">
+    <div class="card-hdr"><span class="card-title">🍔 Hero Sliders</span><button class="btn-sm bg-green" onclick="addHeroSlider()">+ Add</button></div>
+    <div id="he-heroes-list"></div>
+  </div>
+  
+  <div class="card" style="margin-bottom:16px">
+    <div class="card-hdr"><span class="card-title">📦 Product Sections</span><button class="btn-sm bg-green" onclick="addProductSection()">+ Add</button></div>
+    <div id="he-sections-list"></div>
+  </div>
+  
+  <div class="card" style="margin-bottom:16px">
+    <div class="card-hdr"><span class="card-title">⭐ Featured Products</span><button class="btn-sm bg-green" onclick="he_openFeaturedPicker()">+ Add</button></div>
+    <div id="he-featured-list"></div>
+  </div>
+  
+  <div class="card" style="margin-bottom:16px">
+    <div class="card-hdr"><span class="card-title">🎁 Offer Banners</span><button class="btn-sm bg-green" onclick="he_addOfferBanner()">+ Add</button></div>
+    <div id="he-banners-list"></div>
+  </div>
+  
+  <div class="card" style="margin-bottom:16px">
+    <div class="card-hdr"><span class="card-title">💰 Deal of the Day</span><button class="btn-sm bg-green" onclick="addDeal()">+ Add</button></div>
+    <div id="he-deals-list"></div>
+  </div>
+  
+  <div class="card" style="margin-bottom:16px">
+    <div class="card-hdr"><span class="card-title">📑 Categories</span></div>
+    <div id="he-categories-list"></div>
+    <button class="btn-primary" style="margin-top:12px;width:100%" onclick="saveCategories(); saveHomeEditorChanges()">💾 Save Categories</button>
+  </div>
+</div>
+
+<!-- PROMOTIONS -->
+<div class="page" id="page-promotions">
+  <div class="card" style="margin-bottom:16px">
+    <div class="card-hdr"><span class="card-title">&#128226; Announcement Banner</span><span class="status-pill sp-ok" id="banner-status">OFF</span></div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px">
+      <div class="form-group"><label>Message</label><input type="text" id="promo-banner-text" placeholder="e.g. Flat 20% off today!"></div>
+      <div class="form-group"><label>Type</label>
+        <select id="promo-banner-type" style="background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:10px 14px;color:var(--text);font-family:var(--font);font-size:13px">
+          <option value="info">Info</option><option value="success">Offer</option><option value="warning">Warning</option>
+        </select>
+      </div>
+    </div>
+    <div style="display:flex;gap:10px">
+      <button class="btn-sm bg-green" onclick="saveBannerAnnouncement(true)">Show Banner</button>
+      <button class="btn-sm bg-red" onclick="saveBannerAnnouncement(false)">Hide Banner</button>
+    </div>
+  </div>
+  <div class="card" style="margin-bottom:16px">
+    <div class="card-hdr"><span class="card-title">&#128666; Free Delivery</span></div>
+    <div style="display:flex;gap:12px;align-items:flex-end;flex-wrap:wrap">
+      <div class="form-group" style="flex:1;min-width:160px"><label>Free Delivery Above (&#8377;)</label><input type="number" id="free-del-above" placeholder="0 = disabled"></div>
+      <button class="btn-sm bg-green" onclick="saveFreeDelivery()">Save</button>
+    </div>
+  </div>
+  <div class="card" style="margin-bottom:16px">
+    <div class="card-hdr"><span class="card-title">&#127999; Promo Codes</span><button class="btn-sm bg-green" onclick="openAddPromo()">+ Add</button></div>
+    <div id="promo-codes-list"></div>
+  </div>
+
+  <!-- ══ WELCOME POPUP BANNERS ══ -->
+  <div class="card" style="margin-bottom:16px">
+    <div class="card-hdr">
+      <span class="card-title">🎉 Welcome Popup Banners</span>
+      <button class="btn-sm bg-green" onclick="openAddWelcomeBanner()">+ Add Banner</button>
+    </div>
+    <p style="font-size:12px;color:var(--text3);margin-bottom:12px;padding:0 2px">Banners appear as a full-screen popup when users open the app. They can swipe through multiple banners and close with ×. Changes go live instantly.</p>
+    <div id="welcome-banners-list">
+      <p style="color:var(--text3);font-size:13px;text-align:center;padding:16px">Loading…</p>
+    </div>
+  </div>
+
+</div>
+
+<!-- RIDER HOME -->
+
+<!-- ══ SHOPS PAGE ══ -->
+<div class="page" id="page-shops">
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:8px">
+    <h2 id="page-title-shops" style="font-size:18px;font-weight:700">🏪 All Shops</h2>
+    <div style="display:flex;gap:8px;flex-wrap:wrap">
+      <input id="shop-area-filter" placeholder="Search by area..." oninput="renderShopsAdmin()" style="background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:7px 10px;font-size:12px;color:var(--text);font-family:var(--font);outline:none;width:180px">
+      <button onclick="openAddShopModal()" style="padding:7px 14px;background:var(--green);color:#000;border:none;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;font-family:var(--font)">+ Add Shop</button>
+    </div>
+  </div>
+  <!-- Platform KPIs -->
+  <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-bottom:16px">
+    <div style="background:var(--bg2);border-radius:12px;padding:12px;border:1px solid var(--border)"><p style="font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px">Platform Revenue Today</p><p style="font-size:20px;font-weight:900;color:var(--green);font-family:var(--mono)" id="pk-rev">—</p></div>
+    <div style="background:var(--bg2);border-radius:12px;padding:12px;border:1px solid var(--border)"><p style="font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px">Orders Today</p><p style="font-size:20px;font-weight:900;color:var(--green);font-family:var(--mono)" id="pk-ord">—</p></div>
+    <div style="background:var(--bg2);border-radius:12px;padding:12px;border:1px solid var(--border)"><p style="font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px">Active Shops</p><p style="font-size:20px;font-weight:900;color:var(--green);font-family:var(--mono)" id="pk-shops">—</p></div>
+    <div style="background:var(--bg2);border-radius:12px;padding:12px;border:1px solid var(--border)"><p style="font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px">Online Riders</p><p style="font-size:20px;font-weight:900;color:var(--green);font-family:var(--mono)" id="pk-riders-count">—</p></div>
+  </div>
+  <div id="shops-admin-list"><p style="color:var(--text3);font-size:13px;text-align:center;padding:20px">Loading shops…</p></div>
+</div>
+
+<!-- ══ SELLERS PAGE ══ -->
+<div class="page" id="page-sellers">
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
+    <h2 style="font-size:18px;font-weight:700">👥 Sellers</h2>
+    <button onclick="openAddShopModal()" style="padding:7px 14px;background:var(--green);color:#000;border:none;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;font-family:var(--font)">+ Add Seller</button>
+  </div>
+  <div id="sellers-list"><p style="color:var(--text3);font-size:13px;text-align:center;padding:20px">Loading…</p></div>
+</div>
+
+<!-- ADD SHOP MODAL -->
+<div id="add-shop-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:9990;align-items:center;justify-content:center">
+  <div style="background:var(--bg2);border-radius:20px;padding:24px;width:calc(100%-32px);max-width:440px;border:1px solid var(--border)">
+    <h3 style="font-size:16px;font-weight:700;margin-bottom:16px;color:var(--text)">+ Add Shop / Seller</h3>
+    <input id="as-name" placeholder="Shop name *" style="width:100%;padding:10px;background:var(--bg3);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:var(--font);font-size:13px;outline:none;margin-bottom:8px">
+    <input id="as-area" placeholder="Area / Full Address * (e.g. Hanumanbasthi, Kothagudem)" style="width:100%;padding:10px;background:var(--bg3);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:var(--font);font-size:13px;outline:none;margin-bottom:8px">
+    <select id="as-cat" style="width:100%;padding:10px;background:var(--bg3);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:var(--font);font-size:13px;outline:none;margin-bottom:8px;cursor:pointer">
+      <option value="grocery">Grocery</option><option value="pickles">Pickles</option>
+      <option value="dairy">Dairy</option><option value="fruits">Fruits & Vegetables</option>
+      <option value="bakery">Bakery</option><option value="nonveg">Non-Veg</option>
+    </select>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px">
+      <input id="as-phone" placeholder="Seller phone *" type="tel" maxlength="10" style="padding:10px;background:var(--bg3);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:var(--font);font-size:13px;outline:none">
+      <input id="as-pin" placeholder="4-digit PIN *" type="number" maxlength="4" style="padding:10px;background:var(--bg3);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:var(--font);font-size:13px;outline:none;letter-spacing:4px;text-align:center">
+    </div>
+    <div style="font-size:11px;color:rgba(255,255,255,.5);margin-bottom:12px;padding:8px 10px;background:rgba(0,230,118,.08);border-radius:8px;border:1px solid rgba(0,230,118,.15)">📲 Share this phone + PIN with the seller so they can log in at <span style="font-family:monospace">seller.html</span></div>
+    <div style="display:flex;gap:8px">
+      <button onclick="document.getElementById('add-shop-modal').style.display='none'" style="flex:1;padding:11px;background:var(--bg4);color:var(--text2);border:none;border-radius:10px;font-size:13px;font-weight:700;cursor:pointer;font-family:var(--font)">Cancel</button>
+      <button onclick="submitAddShop()" style="flex:2;padding:11px;background:var(--green);color:#000;border:none;border-radius:10px;font-size:13px;font-weight:800;cursor:pointer;font-family:var(--font)">Add Shop</button>
+    </div>
+  </div>
+</div>
+
+<div class="page" id="page-rider-home">
+  <div id="rd-status-banner" style="border-radius:14px;padding:18px 20px;margin-bottom:16px;display:flex;align-items:center;justify-content:space-between;background:var(--bg3);border:1px solid var(--border)">
+    <div style="display:flex;align-items:center;gap:14px">
+      <div id="rd-ava" style="width:48px;height:48px;border-radius:50%;background:var(--green);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:20px;color:#000;flex-shrink:0">R</div>
+      <div>
+        <div style="font-size:15px;font-weight:700" id="rd-name-display">Rider</div>
+        <div style="font-size:12px;color:var(--text2)" id="rd-phone-display">—</div>
+        <div style="margin-top:6px"><span id="rd-status-pill" class="status-pill sp-offline">&#9899; Offline</span></div>
+      </div>
+    </div>
+    <div style="display:flex;flex-direction:column;align-items:center;gap:6px">
+      <div class="toggle" id="rd-status-tog" onclick="toggleRiderStatus()"></div>
+      <span style="font-size:10px;color:var(--text2)" id="rd-status-lbl">Go Online</span>
+    </div>
+  </div>
+  <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:16px">
+    <div class="kpi green" style="padding:14px"><div class="kpi-label">Today Earned</div><div class="kpi-val" id="rd-earn" style="font-size:22px">&#8377;0</div><div class="kpi-sub">Earnings today</div></div>
+    <div class="kpi blue" style="padding:14px"><div class="kpi-label">Deliveries</div><div class="kpi-val" id="rd-del" style="font-size:22px">0</div><div class="kpi-sub">Today</div></div>
+    <div class="kpi purple" style="padding:14px"><div class="kpi-label">Total Earned</div><div class="kpi-val" id="rd-total-earn" style="font-size:22px">&#8377;0</div><div class="kpi-sub">All time</div></div>
+  </div>
+  <div class="card">
+    <div class="card-hdr"><span class="card-title">&#128230; My Active Orders</span><button class="btn-sm bg-ghost" onclick="renderRiderHome()">&#128260; Refresh</button></div>
+    <div id="rider-orders-list"><div class="empty"><div class="ico">&#128237;</div><p>No orders assigned yet</p></div></div>
+  </div>
+  <div id="rd-map-card" style="display:none" class="card">
+    <div class="card-hdr"><span class="card-title">&#128205; Live Location</span><span id="rd-gps-status" style="font-size:11px;color:var(--green)">&#9679; Tracking</span></div>
+    <div style="border-radius:10px;overflow:hidden;height:200px;background:var(--bg3);position:relative">
+      <div id="rd-map-ph" style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;color:var(--text2);font-size:13px">&#128205; Map loads when GPS starts</div>
+    </div>
+    <div style="margin-top:10px;font-size:12px;color:var(--text2);font-family:var(--mono)" id="rd-coords">Waiting for GPS...</div>
+  </div>
+</div>
+
+<!-- RIDER EARNINGS -->
+<div class="page" id="page-rider-earnings">
+  <div class="card" style="margin-bottom:16px">
+    <div class="card-hdr"><span class="card-title">&#128176; My Earnings</span></div>
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:16px">
+      <div class="kpi green" style="padding:14px"><div class="kpi-label">Today</div><div class="kpi-val" id="re-today" style="font-size:22px">&#8377;0</div></div>
+      <div class="kpi blue" style="padding:14px"><div class="kpi-label">This Week</div><div class="kpi-val" id="re-week" style="font-size:22px">&#8377;0</div></div>
+      <div class="kpi purple" style="padding:14px"><div class="kpi-label">All Time</div><div class="kpi-val" id="re-total" style="font-size:22px">&#8377;0</div></div>
+    </div>
+    <div class="chart-box"><canvas id="chart-rider-earnings"></canvas></div>
+  </div>
+  <div class="card"><div class="card-hdr"><span class="card-title">Delivery Stats</span></div><div id="rd-stats-detail"></div></div>
+</div>
+
+<!-- RIDER HISTORY -->
+<div class="page" id="page-rider-history">
+  <div class="card"><div class="card-hdr"><span class="card-title">&#128336; Delivery History</span></div>
+    <div id="rider-history-list"><div class="empty"><div class="ico">&#128237;</div><p>No deliveries yet</p></div></div>
+  </div>
+</div>
+
+<!-- REPORTS -->
+<div class="page" id="page-reports">
+
+  <!-- Period selector + quick download bar -->
+  <div style="display:flex;align-items:center;gap:12px;margin-bottom:20px;flex-wrap:wrap">
+    <h3 style="font-size:16px;font-weight:700;flex:1">&#128196; Reports &amp; Downloads</h3>
+    <select id="rpt-period" onchange="loadAllReports()" style="background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:9px 14px;color:var(--text);font-family:var(--font);font-size:13px;outline:none">
+      <option value="today">Today</option>
+      <option value="yesterday">Yesterday</option>
+      <option value="week" selected>This Week</option>
+      <option value="month">This Month</option>
+      <option value="last30">Last 30 Days</option>
+      <option value="all">All Time</option>
+    </select>
+    <input type="date" id="rpt-from" style="background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:9px 14px;color:var(--text);font-family:var(--font);font-size:13px;outline:none">
+    <span style="color:var(--text2);font-size:13px">to</span>
+    <input type="date" id="rpt-to" style="background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:9px 14px;color:var(--text);font-family:var(--font);font-size:13px;outline:none">
+    <button class="btn-sm bg-green" onclick="loadAllReports()">&#128260; Refresh</button>
+  </div>
+
+  <!-- KPI summary row -->
+  <div class="kpi-grid" style="margin-bottom:20px">
+    <div class="kpi green"><div class="kpi-label">Total Revenue</div><div class="kpi-val" id="rpt-rev">&#8377;0</div><div class="kpi-sub" id="rpt-rev-sub">0 orders</div><div class="kpi-icon">&#128176;</div></div>
+    <div class="kpi blue"><div class="kpi-label">Orders</div><div class="kpi-val" id="rpt-ord">0</div><div class="kpi-sub" id="rpt-ord-sub">Delivered</div><div class="kpi-icon">&#128230;</div></div>
+    <div class="kpi purple"><div class="kpi-label">Avg Order Value</div><div class="kpi-val" id="rpt-aov">&#8377;0</div><div class="kpi-sub">Per order</div><div class="kpi-icon">&#128202;</div></div>
+    <div class="kpi orange"><div class="kpi-label">Items Sold</div><div class="kpi-val" id="rpt-items">0</div><div class="kpi-sub">Unique products</div><div class="kpi-icon">&#129530;</div></div>
+  </div>
+
+  <!-- Download buttons row -->
+  <div class="card" style="margin-bottom:20px">
+    <div class="card-hdr"><span class="card-title">&#11015; Download Reports</span></div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px">
+      <button class="btn-sm bg-green" style="padding:14px;font-size:13px;border-radius:12px" onclick="rptDownload('sales-summary')">
+        &#128196; Sales Summary .xlsx
+      </button>
+      <button class="btn-sm bg-blue" style="padding:14px;font-size:13px;border-radius:12px" onclick="rptDownload('all-orders')">
+        &#128230; All Orders .xlsx
+      </button>
+      <button class="btn-sm bg-orange" style="padding:14px;font-size:13px;border-radius:12px" onclick="rptDownload('top-items')">
+        &#127947; Top Items .xlsx
+      </button>
+      <button class="btn-sm bg-ghost" style="padding:14px;font-size:13px;border-radius:12px" onclick="rptDownload('all-items')">
+        &#129530; All Items Sold .xlsx
+      </button>
+      <button class="btn-sm bg-ghost" style="padding:14px;font-size:13px;border-radius:12px;border-color:rgba(0,230,118,.4);color:var(--green)" onclick="rptDownload('full-catalog')">
+        &#128218; Full Product Catalog .xlsx
+      </button>
+      <button class="btn-sm" style="padding:14px;font-size:13px;border-radius:12px;background:#d500f9;color:#fff" onclick="rptDownload('daily-breakdown')">
+        &#128197; Daily Breakdown .xlsx
+      </button>
+      <button class="btn-sm" style="padding:14px;font-size:13px;border-radius:12px;background:#ff1744;color:#fff" onclick="rptDownload('customers-report')">
+        &#128101; Customers Report .xlsx
+      </button>
+      <button class="btn-sm" style="padding:14px;font-size:13px;border-radius:12px;background:#00bcd4;color:#000;font-weight:700" onclick="rptDownload('rider-report')">
+        &#128757; Rider Performance .xlsx
+      </button>
+      <button class="btn-sm" style="padding:14px;font-size:13px;border-radius:12px;background:#ff6d00;color:#fff" onclick="rptPrint()">
+        &#128438; Print / Save as PDF
+      </button>
+    </div>
+  </div>
+
+  <!-- Daily breakdown chart -->
+  <div class="card" style="margin-bottom:20px">
+    <div class="card-hdr">
+      <span class="card-title">&#128197; Daily Sales Breakdown</span>
+      <button class="btn-sm bg-ghost" onclick="rptDownload('daily-breakdown')">&#11015; .xlsx</button>
+    </div>
+    <div class="chart-box" style="height:260px"><canvas id="chart-rpt-daily"></canvas></div>
+  </div>
+
+  <div class="grid-2" style="margin-bottom:20px">
+    <!-- Top selling items -->
+    <div class="card">
+      <div class="card-hdr">
+        <span class="card-title">&#127947; Top Selling Items</span>
+        <button class="btn-sm bg-ghost" onclick="rptDownload('top-items')">&#11015; .xlsx</button>
+      </div>
+      <div id="rpt-top-items"><div class="empty"><p>Loading...</p></div></div>
+    </div>
+    <!-- Category revenue -->
+    <div class="card">
+      <div class="card-hdr"><span class="card-title">&#128202; Revenue by Category</span></div>
+      <div class="chart-box" style="height:260px"><canvas id="chart-rpt-cats"></canvas></div>
+    </div>
+  </div>
+
+  <!-- All orders table -->
+  <div class="card" style="margin-bottom:20px">
+    <div class="card-hdr">
+      <span class="card-title">&#128230; Orders in Period</span>
+      <div style="display:flex;gap:8px">
+        <input type="text" id="rpt-ord-search" placeholder="Search..." oninput="rptFilterOrders()" style="background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:6px 12px;color:var(--text);font-family:var(--font);font-size:12px;outline:none;width:160px">
+        <button class="btn-sm bg-green" onclick="rptDownload('all-orders')">&#11015; .xlsx</button>
+      </div>
+    </div>
+    <div class="tbl-wrap">
+      <table>
+        <thead><tr><th>#</th><th>Date &amp; Time</th><th>Customer</th><th>Phone</th><th>Items</th><th>Amount</th><th>Delivery</th><th>Status</th></tr></thead>
+        <tbody id="rpt-orders-tbody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- All items sold table -->
+  <div class="card">
+    <div class="card-hdr">
+      <span class="card-title">&#129530; All Items Sold</span>
+      <button class="btn-sm bg-ghost" onclick="rptDownload('all-items')">&#11015; .xlsx</button>
+    </div>
+    <div class="tbl-wrap">
+      <table>
+        <thead><tr><th>Product</th><th>Category</th><th>Qty Sold</th><th>Orders</th><th>Revenue</th><th>Avg Price</th></tr></thead>
+        <tbody id="rpt-items-tbody"></tbody>
+      </table>
+    </div>
+  </div>
+
+</div>
+<!-- /REPORTS -->
+
+    </div><!-- /content -->
+  </div><!-- /main -->
+</div><!-- /app -->
+
+<script>
+window.addEventListener('load', function() {
+  if (typeof setLoginRole === 'function') setLoginRole('admin');
+});
+
+// ═══════════════════════════════════════════════════════════════
+// DASHBOARD CONTACTS MANAGEMENT
+// ═══════════════════════════════════════════════════════════════
+var _dbContacts = [];
+var _dbContactsFilter = 'all';
+
+async function loadDashboardContacts() {
+  try {
+    if (!window.db) throw new Error('Firebase not ready');
+    var snap = await window.db.collection('contacts').orderBy('createdAt','desc').limit(200).get();
+    _dbContacts = [];
+    snap.forEach(function(doc) {
+      var data = doc.data();
+      data.id = doc.id;
+      data.timestamp = data.createdAt ? data.createdAt.toDate() : new Date();
+      _dbContacts.push(data);
+    });
+    filterDashboardContacts(_dbContactsFilter);
+    updateContactsBadge();
+    startContactsListener();
+  } catch(e) {
+    console.error('loadDashboardContacts:', e);
+    var list = document.getElementById('db-contacts-list');
+    if(list) list.innerHTML = '<div style="text-align:center;padding:40px;color:#ff5555">❌ Failed to load. Check Firebase.</div>';
+  }
+}
+
+function filterDashboardContacts(type, btn) {
+  _dbContactsFilter = type;
+  if(btn) {
+    document.querySelectorAll('[data-filter]').forEach(function(b) { b.style.borderColor = 'var(--border)'; b.style.background = 'var(--bg2)'; });
+    btn.style.borderColor = 'var(--green)'; btn.style.background = 'rgba(0,230,118,.1)';
+  }
+  
+  var filtered = type === 'all' ? _dbContacts : (type === 'new' ? _dbContacts.filter(function(c) { return c.status === 'new'; }) : _dbContacts.filter(function(c) { return c.type === type; }));
+  
+  var html = '';
+  if(filtered.length === 0) {
+    html = '<div style="text-align:center;padding:40px;color:var(--text3)">📭 No ' + type + ' contacts</div>';
+  } else {
+    filtered.forEach(function(c) {
+      var time = c.timestamp.toLocaleTimeString('en-US', {hour:'2-digit', minute:'2-digit'});
+      var date = c.timestamp.toLocaleDateString('en-US', {month:'short', day:'numeric'});
+      var typeIcon = {support:'🆘', seller:'🏪', rider:'🛵'}[c.type] || '💬';
+      var newBadge = c.status === 'new' ? '<span style="background:#ef4444;color:#fff;border-radius:50%;width:8px;height:8px;display:inline-block;margin-right:8px"></span>' : '';
+      var bgColor = c.status === 'new' ? 'rgba(239, 68, 68, 0.1)' : 'var(--bg2)';
+      html += '<div style="background:' + bgColor + ';border:1px solid var(--border);border-radius:10px;padding:14px;cursor:pointer;transition:all .2s" onclick="markContactRead(\'' + c.id + '\')">';
+      html += '<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px">';
+      html += '<div style="flex:1"><div style="font-weight:700;font-size:13px;color:var(--text)">' + newBadge + typeIcon + ' ' + c.name + '</div>';
+      html += '<div style="font-size:11px;color:var(--text3);margin-top:2px">📱 ' + c.phone + '</div></div>';
+      html += '<div style="font-size:10px;color:var(--text3);white-space:nowrap;margin-left:8px">' + date + ' ' + time + '</div>';
+      html += '</div>';
+      html += '<div style="background:var(--bg3);padding:9px;border-radius:8px;font-size:12px;color:var(--text);margin-bottom:8px;line-height:1.4">' + c.message + '</div>';
+      html += '<button onclick="deleteContact(\'' + c.id + '\',event)" style="background:#fee2e2;color:#dc2626;border:none;padding:4px 10px;border-radius:6px;font-weight:700;cursor:pointer;font-size:11px">🗑 Delete</button>';
+      html += '</div>';
+    });
+  }
+  
+  var list = document.getElementById('db-contacts-list');
+  if(list) list.innerHTML = html;
+}
+
+async function markContactRead(id) {
+  try {
+    if(!window.db) throw new Error('Firebase not ready');
+    await window.db.collection('contacts').doc(id).update({status:'read'});
+    loadDashboardContacts();
+  } catch(e) {
+    console.error('markContactRead:', e);
+  }
+}
+
+async function deleteContact(id, event) {
+  event.stopPropagation();
+  if(!confirm('Delete this message?')) return;
+  try {
+    if(!window.db) throw new Error('Firebase not ready');
+    await window.db.collection('contacts').doc(id).delete();
+    loadDashboardContacts();
+  } catch(e) {
+    console.error('deleteContact:', e);
+  }
+}
+
+function updateContactsBadge() {
+  var newCount = _dbContacts.filter(function(c) { return c.status === 'new'; }).length;
+  var badge = document.getElementById('sb-contacts-badge');
+  if(badge) {
+    if(newCount > 0) {
+      badge.textContent = newCount;
+      badge.style.display = 'flex';
+    } else {
+      badge.style.display = 'none';
+    }
+  }
+}
+
+var _contactsListener = null;
+function startContactsListener() {
+  if(_contactsListener) _contactsListener();
+  if(!window.db) return;
+  _contactsListener = window.db.collection('contacts')
+    .orderBy('createdAt','desc')
+    .limit(100)
+    .onSnapshot(function(snap) {
+      _dbContacts = [];
+      snap.forEach(function(doc) {
+        var data = doc.data();
+        data.id = doc.id;
+        data.timestamp = data.createdAt ? data.createdAt.toDate() : new Date();
+        _dbContacts.push(data);
+      });
+      filterDashboardContacts(_dbContactsFilter);
+      updateContactsBadge();
+    }, function(err) {
+      console.error('Contacts listener error:', err);
+    });
+}
+</script>
+
+<!-- FALLBACK: Ensure doLogin is always defined -->
+<script>
+// Set login role (admin or rider)
+window.setLoginRole = function(role) {
+  window._loginRole = role;
+  const tabAdmin = document.getElementById('tab-admin');
+  const tabRider = document.getElementById('tab-rider');
+  const adminFields = document.getElementById('admin-fields');
+  
+  if (role === 'admin') {
+    if (tabAdmin) tabAdmin.classList.add('on');
+    if (tabRider) tabRider.classList.remove('on');
+    if (adminFields) adminFields.style.display = 'flex';
+  } else if (role === 'rider') {
+    if (tabAdmin) tabAdmin.classList.remove('on');
+    if (tabRider) tabRider.classList.add('on');
+    if (adminFields) adminFields.style.display = 'none';
+  }
+};
+
+if (typeof doLogin !== 'function') {
+  console.warn('⚠️ doLogin not loaded from external script, using inline fallback');
+  window.doLogin = async function() {
+    const btn = document.getElementById('login-btn');
+    const err = document.getElementById('login-err');
+    if (!btn || !err) return;
+    err.textContent = '';
+    btn.disabled = true;
+    btn.textContent = 'Checking…';
+    try {
+      const role = typeof _loginRole !== 'undefined' ? _loginRole : 'admin';
+      if (role === 'admin') {
+        const pass = document.getElementById('admin-pass');
+        if (!pass) { err.textContent = '❌ Password field not found'; btn.disabled = false; btn.textContent = '🚀 Enter Dashboard'; return; }
+        const passValue = (pass.value || '').trim();
+        if (!passValue) { err.textContent = 'Enter password'; btn.disabled = false; btn.textContent = '🚀 Enter Dashboard'; return; }
+        // Verify via admin-auth.js (verifyAdminPin uses SHA-256 + bcrypt)
+        const ok = window.verifyAdminPin ? await window.verifyAdminPin(passValue) : false;
+        if (ok) {
+          sessionStorage.setItem('nk_dash_role', 'admin');
+          sessionStorage.setItem('nk_dash_login_time', new Date().toISOString());
+          if (typeof enterDashboard === 'function') setTimeout(enterDashboard, 100);
+          return;
+        }
+        err.textContent = '❌ Wrong password';
+        btn.disabled = false; btn.textContent = '🚀 Enter Dashboard';
+      } else {
+        const phElem   = document.getElementById('rider-phone');
+        const nameElem = document.getElementById('rider-name');
+        if (!phElem || !nameElem) { err.textContent = '❌ Form fields not found'; btn.disabled = false; btn.textContent = '🚀 Enter Dashboard'; return; }
+        const ph   = (phElem.value || '').trim();
+        const name = (nameElem.value || '').trim();
+        if (!/^[6-9]\d{9}$/.test(ph)) { err.textContent = 'Enter valid 10-digit phone'; btn.disabled = false; btn.textContent = '🚀 Enter Dashboard'; return; }
+        if (!name) { err.textContent = 'Enter your name'; btn.disabled = false; btn.textContent = '🚀 Enter Dashboard'; return; }
+        sessionStorage.setItem('nk_dash_role', 'rider');
+        sessionStorage.setItem('nk_dash_rider_phone', ph);
+        sessionStorage.setItem('nk_dash_rider_name', name);
+        sessionStorage.setItem('nk_dash_login_time', new Date().toISOString());
+        if (typeof enterDashboard === 'function') setTimeout(enterDashboard, 100);
+      }
+    } catch(e) {
+      err.textContent = '❌ Error: ' + (e.message || 'Unknown');
+      btn.disabled = false; btn.textContent = '🚀 Enter Dashboard';
+    }
+  };
+}
+</script>
+
+</body>
+</html>

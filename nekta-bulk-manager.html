@@ -1,0 +1,1093 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1">
+<title>Nekta — Bulk Product Manager</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="js/config-loader.js"></script>
+<script src="js/firebase-app-compat.js"></script>
+<script src="js/firebase-firestore-compat.js"></script>
+<script src="js/firebase-database-compat.js"></script>
+<script src="js/firebase-config.js"></script>
+<script src="js/products.js"></script>
+<style>
+:root {
+  --bg:#0a0f1a; --bg2:#0f1626; --bg3:#141e30; --card:#161f33;
+  --border:#1e2d47; --border2:#253350;
+  --green:#00e676; --green2:#00c853; --greenbg:rgba(0,230,118,.08);
+  --red:#ff1744; --redbg:rgba(255,23,68,.08);
+  --amber:#ffd600; --amberbg:rgba(255,214,0,.08);
+  --blue:#40c4ff; --bluebg:rgba(64,196,255,.08);
+  --purple:#e040fb;
+  --text:#e8f0fe; --text2:#8eacc8; --text3:#4a6580;
+  --font:'Space Grotesk',sans-serif; --mono:'JetBrains Mono',monospace;
+  --r:14px; --rs:10px;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{height:100%;background:var(--bg);color:var(--text);font-family:var(--font);-webkit-font-smoothing:antialiased}
+body{min-height:100vh;padding:0 0 60px}
+
+/* ── TOP BAR ── */
+.topbar{background:linear-gradient(135deg,#0d1b2e,#0a1520);border-bottom:1px solid var(--border);padding:18px 24px;display:flex;align-items:center;gap:16px;position:sticky;top:0;z-index:100;backdrop-filter:blur(20px)}
+.topbar-logo{font-size:26px;font-weight:700;color:var(--green);letter-spacing:-1px}
+.topbar-sub{font-size:13px;color:var(--text2);font-weight:500}
+.topbar-right{margin-left:auto;display:flex;gap:10px}
+
+/* ── LAYOUT ── */
+.container{max-width:1100px;margin:0 auto;padding:28px 20px}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:20px}
+.grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px}
+@media(max-width:768px){.grid2{grid-template-columns:1fr}.grid3{grid-template-columns:1fr 1fr}}
+@media(max-width:480px){.grid3{grid-template-columns:1fr}}
+
+/* ── CARDS ── */
+.card{background:var(--card);border:1px solid var(--border);border-radius:var(--r);padding:24px;transition:.2s}
+.card:hover{border-color:var(--border2)}
+.card-title{font-size:14px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.8px;margin-bottom:16px;display:flex;align-items:center;gap:8px}
+.card-title::before{content:'';width:3px;height:14px;background:var(--green);border-radius:2px;display:inline-block}
+
+/* ── BUTTONS ── */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:11px 20px;border-radius:var(--rs);border:none;font-family:var(--font);font-size:13px;font-weight:700;cursor:pointer;transition:all .18s;letter-spacing:.2px}
+.btn-primary{background:var(--green);color:#000}
+.btn-primary:hover{background:#00ff85;transform:translateY(-1px)}
+.btn-primary:disabled{background:#1a3325;color:var(--text3);cursor:not-allowed;transform:none}
+.btn-ghost{background:transparent;color:var(--text2);border:1px solid var(--border2)}
+.btn-ghost:hover{background:var(--bg3);color:var(--text);border-color:var(--text3)}
+.btn-danger{background:var(--redbg);color:var(--red);border:1px solid rgba(255,23,68,.2)}
+.btn-danger:hover{background:rgba(255,23,68,.15)}
+.btn-blue{background:var(--bluebg);color:var(--blue);border:1px solid rgba(64,196,255,.2)}
+.btn-blue:hover{background:rgba(64,196,255,.15)}
+.btn-sm{padding:8px 14px;font-size:12px}
+.btn-full{width:100%}
+
+/* ── STATS ROW ── */
+.stat-badge{background:var(--bg3);border:1px solid var(--border);border-radius:12px;padding:16px 20px;display:flex;align-items:center;gap:14px}
+.stat-icon{width:44px;height:44px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0}
+.stat-num{font-size:26px;font-weight:700;font-family:var(--mono);line-height:1}
+.stat-lbl{font-size:11px;color:var(--text2);margin-top:2px;font-weight:500}
+
+/* ── TABS ── */
+.tabs{display:flex;background:var(--bg3);border-radius:var(--rs);padding:4px;gap:4px;margin-bottom:24px}
+.tab{flex:1;padding:10px;border-radius:8px;border:none;font-family:var(--font);font-size:13px;font-weight:600;cursor:pointer;color:var(--text2);background:transparent;transition:.18s}
+.tab.active{background:var(--card);color:var(--green);border:1px solid var(--border);box-shadow:0 2px 12px rgba(0,0,0,.3)}
+
+/* ── DROP ZONE ── */
+.drop-zone{border:2px dashed var(--border2);border-radius:var(--r);padding:48px 24px;text-align:center;cursor:pointer;transition:.2s;background:var(--bg3)}
+.drop-zone:hover,.drop-zone.drag-over{border-color:var(--green);background:var(--greenbg)}
+.drop-icon{font-size:48px;margin-bottom:12px}
+.drop-title{font-size:16px;font-weight:700;margin-bottom:6px}
+.drop-sub{font-size:13px;color:var(--text2)}
+
+/* ── TABLE ── */
+.tbl-wrap{overflow-x:auto;border-radius:var(--rs);border:1px solid var(--border)}
+table{width:100%;border-collapse:collapse;font-size:12px}
+thead tr{background:var(--bg3);border-bottom:1px solid var(--border)}
+th{padding:10px 14px;text-align:left;color:var(--text2);font-weight:600;font-size:11px;text-transform:uppercase;letter-spacing:.5px;white-space:nowrap}
+td{padding:10px 14px;border-bottom:1px solid rgba(255,255,255,.03);vertical-align:middle}
+tr:last-child td{border-bottom:none}
+tr:hover td{background:rgba(255,255,255,.02)}
+.col-name{font-weight:600;color:var(--text)}
+.col-tel{font-size:11px;color:var(--text2)}
+.col-cat{display:inline-flex;align-items:center;padding:3px 8px;background:var(--bg3);border-radius:6px;font-size:10px;font-weight:600;color:var(--blue);letter-spacing:.3px}
+.col-price{font-family:var(--mono);font-weight:700;color:var(--green)}
+.col-price-alt{font-family:var(--mono);font-size:11px;color:var(--text2)}
+.badge-ok{display:inline-flex;align-items:center;padding:3px 8px;background:var(--greenbg);border-radius:6px;font-size:10px;font-weight:700;color:var(--green)}
+.badge-err{display:inline-flex;align-items:center;padding:3px 8px;background:var(--redbg);border-radius:6px;font-size:10px;font-weight:700;color:var(--red)}
+.badge-warn{display:inline-flex;align-items:center;padding:3px 8px;background:var(--amberbg);border-radius:6px;font-size:10px;font-weight:700;color:var(--amber)}
+.badge-oos{display:inline-flex;align-items:center;padding:3px 8px;background:var(--redbg);border-radius:6px;font-size:10px;font-weight:700;color:var(--red)}
+
+/* ── ALERT ── */
+.alert{border-radius:var(--rs);padding:14px 16px;margin-bottom:16px;font-size:13px;line-height:1.5}
+.alert-err{background:var(--redbg);border:1px solid rgba(255,23,68,.2);color:#ff6b6b}
+.alert-ok{background:var(--greenbg);border:1px solid rgba(0,230,118,.2);color:var(--green)}
+.alert-info{background:var(--bluebg);border:1px solid rgba(64,196,255,.2);color:var(--blue)}
+.alert-warn{background:var(--amberbg);border:1px solid rgba(255,214,0,.2);color:var(--amber)}
+.alert b{font-weight:700}
+
+/* ── PROGRESS ── */
+.progress-bar{height:6px;background:var(--bg3);border-radius:3px;overflow:hidden;margin-top:8px}
+.progress-fill{height:100%;border-radius:3px;transition:width .4s ease;background:linear-gradient(90deg,var(--green),#00ff85)}
+
+/* ── MODE TOGGLE ── */
+.mode-toggle{display:flex;gap:0;border:1px solid var(--border);border-radius:var(--rs);overflow:hidden;margin-bottom:20px}
+.mode-btn{flex:1;padding:12px 16px;border:none;font-family:var(--font);font-size:13px;font-weight:600;cursor:pointer;background:transparent;color:var(--text2);transition:.18s;border-right:1px solid var(--border)}
+.mode-btn:last-child{border-right:none}
+.mode-btn.active{background:var(--green);color:#000}
+
+/* ── HEALTH CHECK ── */
+.health-item{display:flex;align-items:flex-start;gap:12px;padding:12px 16px;border-radius:var(--rs);background:var(--bg3);margin-bottom:8px}
+.health-icon{font-size:16px;flex-shrink:0;margin-top:1px}
+.health-title{font-size:13px;font-weight:600;margin-bottom:3px}
+.health-detail{font-size:11px;color:var(--text2);line-height:1.5}
+.issue-list{list-style:none;margin-top:6px}
+.issue-list li{font-size:11px;color:var(--red);padding:2px 0;display:flex;align-items:center;gap:6px}
+.issue-list li::before{content:'•';color:var(--red);flex-shrink:0}
+
+/* ── COL GUIDE ── */
+.col-guide{display:grid;grid-template-columns:160px 80px 1fr;gap:0;border-radius:var(--rs);overflow:hidden;border:1px solid var(--border)}
+.cg-hdr,.cg-row{display:contents}
+.cg-hdr div{background:var(--bg3);padding:10px 14px;font-size:11px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.5px;border-bottom:1px solid var(--border)}
+.cg-row div{padding:9px 14px;border-bottom:1px solid rgba(255,255,255,.03);font-size:12px;vertical-align:middle}
+.cg-row:last-child div{border-bottom:none}
+.cg-key{font-family:var(--mono);color:var(--green);font-size:11px}
+
+/* ── TOAST ── */
+.toast-wrap{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);z-index:1000;display:flex;flex-direction:column;align-items:center;gap:8px;pointer-events:none;min-width:280px}
+.toast{background:#1a2d45;border:1px solid var(--border2);border-radius:12px;padding:13px 20px;font-size:13px;font-weight:600;box-shadow:0 8px 32px rgba(0,0,0,.6);animation:toastIn .3s cubic-bezier(.34,1.56,.64,1);pointer-events:auto;max-width:400px;text-align:center}
+.toast.toast-ok{border-color:rgba(0,230,118,.3);color:var(--green)}
+.toast.toast-err{border-color:rgba(255,23,68,.3);color:#ff6b6b}
+.toast.toast-info{border-color:rgba(64,196,255,.3);color:var(--blue)}
+@keyframes toastIn{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
+
+/* ── LOADING ── */
+.spinner{width:20px;height:20px;border:2px solid var(--border);border-top-color:var(--green);border-radius:50%;animation:spin .7s linear infinite;display:inline-block}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* ── SECTION TITLE ── */
+.sec-title{font-size:11px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:1px;margin-bottom:14px;display:flex;align-items:center;gap:8px}
+.sec-title::after{content:'';flex:1;height:1px;background:var(--border)}
+
+/* ── EMPTY STATE ── */
+.empty{text-align:center;padding:60px 24px;color:var(--text2)}
+.empty-icon{font-size:48px;margin-bottom:16px}
+.empty-title{font-size:16px;font-weight:700;color:var(--text);margin-bottom:8px}
+.empty-sub{font-size:13px}
+
+/* ── VALID CATS PILLS ── */
+.cat-pills{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.cat-pill{padding:4px 10px;background:var(--bg3);border:1px solid var(--border);border-radius:6px;font-size:10px;font-weight:600;color:var(--blue);cursor:pointer;transition:.15s}
+.cat-pill:hover{background:var(--bluebg);border-color:rgba(64,196,255,.3)}
+
+/* ── INPUT ── */
+input[type=file]{display:none}
+</style>
+</head>
+<body>
+
+<!-- TOP BAR -->
+<div class="topbar">
+  <div>
+    <div class="topbar-logo">Nekta</div>
+    <div class="topbar-sub">Bulk Product Manager</div>
+  </div>
+  <div class="topbar-right">
+    <button class="btn btn-ghost btn-sm" onclick="showSection('guide')">📋 Column Guide</button>
+    <button class="btn btn-blue btn-sm" onclick="downloadTemplate()">⬇ Download Template</button>
+  </div>
+</div>
+
+<!-- MAIN CONTAINER -->
+<div class="container">
+
+  <!-- STATS ROW -->
+  <div class="grid3" style="margin-bottom:24px" id="stats-row">
+    <div class="stat-badge">
+      <div class="stat-icon" style="background:rgba(0,230,118,.1)">📦</div>
+      <div><div class="stat-num" style="color:var(--green)" id="stat-total">0</div><div class="stat-lbl">Products Loaded</div></div>
+    </div>
+    <div class="stat-badge">
+      <div class="stat-icon" style="background:rgba(255,23,68,.1)">⚠️</div>
+      <div><div class="stat-num" style="color:var(--red)" id="stat-issues">0</div><div class="stat-lbl">Health Issues</div></div>
+    </div>
+    <div class="stat-badge">
+      <div class="stat-icon" style="background:rgba(64,196,255,.1)">🏷️</div>
+      <div><div class="stat-num" style="color:var(--blue)" id="stat-cats">0</div><div class="stat-lbl">Categories</div></div>
+    </div>
+  </div>
+
+  <!-- TABS -->
+  <div class="tabs">
+    <button class="tab active" id="tab-upload" onclick="switchTab('upload')">⬆ Upload Products</button>
+    <button class="tab" id="tab-preview" onclick="switchTab('preview')">👁 Preview / Edit</button>
+    <button class="tab" id="tab-health" onclick="switchTab('health')">🏥 Health Check</button>
+    <button class="tab" id="tab-guide" onclick="switchTab('guide')">📋 Column Guide</button>
+  </div>
+
+  <!-- ═══ TAB: UPLOAD ═══ -->
+  <div id="section-upload">
+    <div class="mode-toggle">
+      <button class="mode-btn active" id="mode-add" onclick="setMode('add')">➕ Add New Products</button>
+      <button class="mode-btn" id="mode-update" onclick="setMode('update')">✏️ Update Existing</button>
+      <button class="mode-btn" id="mode-stock" onclick="setMode('stock')">📦 Stock Only Update</button>
+      <button class="mode-btn" id="mode-sync" onclick="setMode('sync')" style="color:#dc2626">🔄 Sync (Replace All)</button>
+    </div>
+
+    <div id="mode-hint" class="alert alert-info" style="margin-bottom:20px"></div>
+
+    <!-- DROP ZONE -->
+    <div class="drop-zone" id="drop-zone"
+      onclick="document.getElementById('file-inp').click()"
+      ondragover="onDragOver(event)"
+      ondragleave="onDragLeave(event)"
+      ondrop="onDrop(event)">
+      <div class="drop-icon">📄</div>
+      <div class="drop-title">Drop your .xlsx file here</div>
+      <div class="drop-sub">Or click to browse · Supports Excel .xlsx files</div>
+    </div>
+    <input type="file" id="file-inp" accept=".xlsx" onchange="onFileSelect(this)">
+
+    <!-- PARSE RESULTS -->
+    <div id="parse-results" style="display:none;margin-top:20px">
+      <div id="parse-stats" class="alert alert-ok" style="margin-bottom:16px"></div>
+      <div id="parse-errors" style="display:none;margin-bottom:16px"></div>
+      <div id="preview-mini" class="tbl-wrap" style="max-height:300px;overflow-y:auto;margin-bottom:20px"></div>
+      <div style="display:flex;gap:10px;flex-wrap:wrap">
+        <button class="btn btn-primary" id="upload-btn" onclick="doUpload()" style="min-width:200px">✅ Confirm Upload</button>
+        <button class="btn btn-ghost" onclick="clearParse()">✕ Clear</button>
+        <button class="btn btn-blue btn-sm" onclick="downloadValidatedFile()">⬇ Download Validated</button>
+      </div>
+      <div id="upload-progress" style="display:none;margin-top:16px">
+        <div style="font-size:13px;color:var(--text2)" id="upload-status">Uploading…</div>
+        <div class="progress-bar"><div class="progress-fill" id="upload-bar" style="width:0%"></div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══ TAB: PREVIEW ═══ -->
+  <div id="section-preview" style="display:none">
+    <div style="display:flex;gap:10px;margin-bottom:16px;flex-wrap:wrap;align-items:center">
+      <input type="text" id="search-inp" placeholder="🔍 Search products…"
+        style="flex:1;min-width:200px;background:var(--bg3);border:1px solid var(--border);border-radius:var(--rs);padding:10px 14px;color:var(--text);font-family:var(--font);font-size:13px;outline:none"
+        oninput="filterTable(this.value)">
+      <select id="cat-filter" onchange="filterTable(document.getElementById('search-inp').value)"
+        style="background:var(--bg3);border:1px solid var(--border);border-radius:var(--rs);padding:10px 14px;color:var(--text);font-family:var(--font);font-size:13px;outline:none">
+        <option value="">All Categories</option>
+      </select>
+      <button class="btn btn-ghost btn-sm" onclick="downloadExport()">⬇ Export All (.xlsx)</button>
+    </div>
+    <div class="tbl-wrap" id="product-table-wrap">
+      <div class="empty"><div class="empty-icon">📋</div><div class="empty-title">No products loaded</div><div class="empty-sub">Upload a file or load product data from your products.js</div></div>
+    </div>
+  </div>
+
+  <!-- ═══ TAB: HEALTH ═══ -->
+  <div id="section-health" style="display:none">
+    <div id="health-summary" class="alert alert-info" style="margin-bottom:20px">
+      Load products to run health check
+    </div>
+    <div id="health-results"></div>
+  </div>
+
+  <!-- ═══ TAB: GUIDE ═══ -->
+  <div id="section-guide" style="display:none">
+    <div class="card" style="margin-bottom:20px">
+      <div class="card-title">📋 Column Reference</div>
+      <div class="col-guide">
+        <div class="cg-hdr"><div>Column Name</div><div>Required</div><div>Description & Examples</div></div>
+        <div class="cg-row"><div class="cg-key">name</div><div><span class="badge-ok">Yes</span></div><div>Full product name in English. Max 80 chars.<br><span style="color:var(--text2)">e.g. Tomato (Local), Amul Butter 100g</span></div></div>
+        <div class="cg-row"><div class="cg-key">teluguName</div><div><span class="badge-warn">No</span></div><div>Name in Telugu script for local customers.<br><span style="color:var(--text2)">e.g. టమాటా, అమూల్ వెన్న</span></div></div>
+        <div class="cg-row"><div class="cg-key">price</div><div><span class="badge-ok">Yes</span></div><div>Full unit selling price in ₹. Must be > 0.<br><span style="color:var(--text2)">e.g. 65 (for 1 Kg tomato)</span></div></div>
+        <div class="cg-row"><div class="cg-key">halfPrice</div><div><span class="badge-warn">No</span></div><div>Price for 500g / half unit. Must be &lt; price.<br><span style="color:var(--text2)">e.g. 35</span></div></div>
+        <div class="cg-row"><div class="cg-key">quarterPrice</div><div><span class="badge-warn">No</span></div><div>Price for 250g / quarter unit. Must be &lt; halfPrice.<br><span style="color:var(--text2)">e.g. 20</span></div></div>
+        <div class="cg-row"><div class="cg-key">slashedPrice</div><div><span class="badge-warn">No</span></div><div>MRP / strikethrough price shown on card. Must be &gt; price.<br><span style="color:var(--text2)">e.g. 80</span></div></div>
+        <div class="cg-row"><div class="cg-key">unit</div><div><span class="badge-ok">Yes</span></div><div>Unit sold in. See valid units below.<br><span style="color:var(--text2)">Kg · L · Pc · Pack · Bunch · Doz · 500g · 250ml</span></div></div>
+        <div class="cg-row"><div class="cg-key">category</div><div><span class="badge-ok">Yes</span></div><div>Product category (UPPERCASE). See list below.</div></div>
+        <div class="cg-row"><div class="cg-key">img</div><div><span class="badge-warn">No</span></div><div>Image filename only (no path needed).<br><span style="color:var(--text2)">e.g. Tomato.jpg — place file in /images/ folder</span></div></div>
+        <div class="cg-row"><div class="cg-key">description</div><div><span class="badge-warn">No</span></div><div>Short product description shown in detail view.<br><span style="color:var(--text2)">e.g. Fresh red tomatoes sourced daily</span></div></div>
+        <div class="cg-row"><div class="cg-key">stock</div><div><span class="badge-warn">No</span></div><div>Available stock quantity. Default: 100.<br><span style="color:var(--text2)">e.g. 50 — set to 0 to mark out of stock</span></div></div>
+        <div class="cg-row"><div class="cg-key">outOfStock</div><div><span class="badge-warn">No</span></div><div>Hides from customer app when true. Default: false.<br><span style="color:var(--text2)">true or false</span></div></div>
+      </div>
+    </div>
+
+    <div class="card" style="margin-bottom:20px">
+      <div class="card-title">🏷️ Valid Categories</div>
+      <div class="cat-pills" id="cat-pills-guide"></div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">💡 Tips & Rules</div>
+      <div style="display:flex;flex-direction:column;gap:10px;font-size:13px;color:var(--text2);line-height:1.6">
+        <div>• <b style="color:var(--text)">Weight items</b> (unit = Kg): Always set halfPrice. quarterPrice is optional but recommended.</div>
+        <div>• <b style="color:var(--text)">halfPrice</b> must be strictly less than price. Otherwise the upload will reject the row.</div>
+        <div>• <b style="color:var(--text)">Images</b>: Put images in the <code style="background:var(--bg3);padding:2px 6px;border-radius:4px">/images/</code> folder. Just write the filename in the column.</div>
+        <div>• <b style="color:var(--text)">Update mode</b>: Match is done by product name (case-insensitive). Name must match exactly.</div>
+        <div>• <b style="color:var(--text)">Stock only mode</b>: Only updates stock + outOfStock. Everything else stays the same.</div>
+        <div>• <b style="color:var(--text)">Max batch size</b>: 500 products per upload. Split into multiple files if larger.</div>
+        <div>• <b style="color:var(--text)">Currency</b>: All prices in ₹ (Indian Rupees). No symbols needed in the cell.</div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- TOAST CONTAINER -->
+<div class="toast-wrap" id="toasts"></div>
+
+<script>
+// ═══════════════════════════════════════════════════════════
+// NEKTA BULK PRODUCT MANAGER — Full Logic
+// ═══════════════════════════════════════════════════════════
+
+const VALID_CATS = [
+  'VEGETABLES','LEAFY','FRUITS','DAIRY','GRAINS','DALS','OILS','SPICES',
+  'SNACKS','DRINKS','NONVEG','PERSONALCARE','CLEANING','PUJA','COMBOS',
+  'BAKERY','FROZEN','CHOCOLATES'
+];
+
+const XLSX_HEADERS = [
+  'name','teluguName','price','halfPrice','quarterPrice','slashedPrice',
+  'unit','category','img','description','stock','outOfStock'
+];
+
+const XLSX_HEADER_LABELS = [
+  'Name','Telugu Name','Price (₹)','Half Price (₹)','Quarter Price (₹)',
+  'Slashed Price (₹)','Unit','Category','Image Filename',
+  'Description','Stock','Out of Stock (true/false)'
+];
+
+let _mode = 'add';
+let _parsedRows = [];
+let _allProducts = [];
+let _filteredProducts = [];
+
+// ── INIT ─────────────────────────────────────────────────
+document.addEventListener('DOMContentLoaded', () => {
+  setMode('add');
+  buildCatGuide();
+  buildCatFilter();
+  tryLoadProducts();
+});
+
+function tryLoadProducts() {
+  // Load from any available source
+  var sources = [window._allProducts, window.allProducts, window.PRODUCT_SEED, window.products];
+  for (var i = 0; i < sources.length; i++) {
+    if (sources[i] && Array.isArray(sources[i]) && sources[i].length) {
+      _allProducts = sources[i];
+      updateStats();
+      runHealthCheck();
+      return;
+    }
+  }
+  // Try Firebase if available
+  if (window.db) {
+    window.db.collection('products').get().then(function(snap) {
+      if (snap.docs.length) {
+        _allProducts = snap.docs.map(function(d) { return Object.assign({ _docId: d.id }, d.data()); });
+        updateStats();
+        runHealthCheck();
+      }
+    }).catch(function() {});
+  }
+}
+
+// ── TABS ─────────────────────────────────────────────────
+function switchTab(tab) {
+  ['upload','preview','health','guide'].forEach(t => {
+    document.getElementById('section-' + t).style.display = t === tab ? 'block' : 'none';
+    document.getElementById('tab-' + t).classList.toggle('active', t === tab);
+  });
+  if (tab === 'health') runHealthCheck();
+  if (tab === 'preview') renderProductTable();
+}
+
+// ── MODE ─────────────────────────────────────────────────
+const MODE_HINTS = {
+  sync: '<b>🔄 Sync Mode:</b> <span style="color:#dc2626;font-weight:700">DELETES products NOT in your file.</span> Upload 500 from 662 → only 500 remain. Use this when you want exact control. Always download first, edit, re-upload.</b>',
+  add: '<b>➕ Add Mode:</b> Each row creates a NEW product. Use this to add products that don\'t exist yet. Duplicate name check will warn you.',
+  update: '<b>✏️ Update Mode:</b> Matches each row by product name and updates price, Telugu name, stock etc. No duplicates created. <br><span style="font-size:11px;margin-top:4px;display:block">💡 Export all products first → edit in Excel → re-upload here.</span>',
+  stock: '<b>📦 Stock Only Mode:</b> Only updates <code>stock</code> and <code>outOfStock</code> fields. Everything else (prices, images) stays unchanged. Fastest way to do stock refresh.'
+};
+
+function setMode(m) {
+  _mode = m;
+  ['add','update','stock'].forEach(id => {
+    const el = document.getElementById('mode-' + id);
+    if (el) el.classList.toggle('active', id === m);
+  });
+  document.getElementById('mode-hint').innerHTML = MODE_HINTS[m];
+  if (_parsedRows.length) showParseResults(_parsedRows, []);
+}
+
+// ── FILE HANDLING ─────────────────────────────────────────
+function onDragOver(e) {
+  e.preventDefault();
+  document.getElementById('drop-zone').classList.add('drag-over');
+}
+function onDragLeave(e) {
+  document.getElementById('drop-zone').classList.remove('drag-over');
+}
+function onDrop(e) {
+  e.preventDefault();
+  document.getElementById('drop-zone').classList.remove('drag-over');
+  const f = e.dataTransfer.files[0];
+  if (f) processFile(f);
+}
+function onFileSelect(inp) {
+  if (inp.files[0]) processFile(inp.files[0]);
+  inp.value = '';
+}
+
+function processFile(file) {
+  if (!file.name.toLowerCase().endsWith('.xlsx')) {
+    toast('Please upload a .xlsx file', 'err');
+    return;
+  }
+  const reader = new FileReader();
+  reader.onload = e => {
+    try {
+      const wb = XLSX.read(new Uint8Array(e.target.result), { type: 'array' });
+      const ws = wb.Sheets[wb.SheetNames[0]];
+      const json = XLSX.utils.sheet_to_json(ws, { defval: '' });
+      const { rows, errors } = parseRows(json);
+      _parsedRows = rows;
+      showParseResults(rows, errors);
+    } catch (err) {
+      toast('Error reading file: ' + err.message, 'err');
+    }
+  };
+  reader.readAsArrayBuffer(file);
+}
+
+// ── PARSE ─────────────────────────────────────────────────
+function parseRows(json) {
+  const rows = [], errors = [];
+  const LABEL_MAP = {
+    'name': 'name', 'telugu name': 'teluguName', 'telugu': 'teluguName',
+    'teluguname': 'teluguName', 'price (₹)': 'price', 'price': 'price',
+    'half price (₹)': 'halfPrice', 'halfprice': 'halfPrice',
+    'quarter price (₹)': 'quarterPrice', 'quarterprice': 'quarterPrice',
+    'slashed price (₹)': 'slashedPrice', 'slashedprice': 'slashedPrice',
+    'mrp': 'slashedPrice',
+    'unit': 'unit', 'category': 'category',
+    'image filename': 'img', 'img': 'img', 'image': 'img',
+    'description': 'description',
+    'stock': 'stock', 'out of stock (true/false)': 'outOfStock',
+    'out of stock': 'outOfStock', 'outofstock': 'outOfStock',
+    'id': 'id',
+  };
+
+  json.forEach((rawRow, idx) => {
+    const row = {};
+    Object.entries(rawRow).forEach(([k, v]) => {
+      const mk = LABEL_MAP[k.trim().toLowerCase()] || k.trim().toLowerCase().replace(/[^a-z]/g, '');
+      row[mk] = String(v ?? '').trim();
+    });
+
+    if (!row.name) return; // skip blank rows silently
+
+    const errs = [];
+    const price = parseFloat(row.price);
+    if (!price || price <= 0) { errors.push(`Row ${idx + 2} (${row.name}): invalid price`); return; }
+
+    const halfPrice = parseFloat(row.halfPrice) || undefined;
+    const quarterPrice = parseFloat(row.quarterPrice) || undefined;
+    const slashedPrice = parseFloat(row.slashedPrice) || undefined;
+
+    if (halfPrice && halfPrice >= price) errors.push(`Row ${idx + 2} (${row.name}): half price ≥ full price`);
+    if (quarterPrice && halfPrice && quarterPrice >= halfPrice) errors.push(`Row ${idx + 2} (${row.name}): quarter price ≥ half price`);
+    if (slashedPrice && slashedPrice <= price) errors.push(`Row ${idx + 2} (${row.name}): slashed price ≤ selling price`);
+
+    const cat = (row.category || '').toUpperCase();
+    if (cat && !VALID_CATS.includes(cat)) errors.push(`Row ${idx + 2} (${row.name}): unknown category "${cat}"`);
+
+    let img = (row.img || '').trim();
+    if (img && !img.startsWith('http') && !img.startsWith('./') && !img.startsWith('images/')) {
+      img = 'images/' + img;
+    }
+
+    rows.push({
+      id: parseInt(row.id) || undefined,
+      name: row.name,
+      teluguName: row.teluguName || '',
+      price,
+      halfPrice,
+      quarterPrice,
+      slashedPrice,
+      unit: row.unit || 'Pc',
+      category: cat || 'VEGETABLES',
+      img: img || 'images/nektaIcon.svg',
+      description: row.description || '',
+      stock: parseInt(row.stock) >= 0 ? parseInt(row.stock) : 100,
+      outOfStock: ['true','1','yes'].includes((row.outOfStock || '').toLowerCase()),
+      _valid: errs.length === 0,
+    });
+  });
+
+  return { rows, errors };
+}
+
+// ── SHOW PARSE RESULTS ────────────────────────────────────
+function showParseResults(rows, errors) {
+  const wrap = document.getElementById('parse-results');
+  wrap.style.display = 'block';
+
+  const catCounts = {};
+  rows.forEach(r => { catCounts[r.category] = (catCounts[r.category] || 0) + 1; });
+
+  const statsEl = document.getElementById('parse-stats');
+  const modeLabel = _mode === 'add' ? 'new products to add' : _mode === 'update' ? 'products to update' : _mode === 'sync' ? 'products (others will be DELETED)' : 'products for stock update';
+  statsEl.innerHTML = `<b>✅ ${rows.length} ${modeLabel}</b>${errors.length ? ` · <span style="color:var(--amber)">${errors.length} rows skipped</span>` : ''}<br>
+    <span style="font-size:11px;color:rgba(0,230,118,.6);margin-top:4px;display:inline-block">
+      ${Object.entries(catCounts).map(([c,n]) => `<span style="background:rgba(255,255,255,.06);padding:2px 7px;border-radius:4px;margin-right:3px">${c} (${n})</span>`).join('')}
+    </span>`;
+
+  const errEl = document.getElementById('parse-errors');
+  if (errors.length) {
+    errEl.style.display = 'block';
+    const shown = errors.slice(0, 6);
+    errEl.innerHTML = `<div class="alert alert-warn"><b>⚠ ${errors.length} rows had issues (skipped):</b><br>${shown.map(e => '• ' + e).join('<br>')}${errors.length > 6 ? `<br>… and ${errors.length - 6} more` : ''}</div>`;
+  } else {
+    errEl.style.display = 'none';
+  }
+
+  // Mini preview table
+  const tbl = document.getElementById('preview-mini');
+  if (!rows.length) {
+    tbl.innerHTML = '<div class="empty"><div class="empty-title">No valid rows found</div><div class="empty-sub">Check the column guide and try again</div></div>';
+    document.getElementById('upload-btn').disabled = true;
+    return;
+  }
+
+  document.getElementById('upload-btn').textContent = `✅ ${_mode === 'add' ? 'Add' : _mode === 'update' ? 'Update' : _mode === 'sync' ? '🔄 Sync (Replace All)' : 'Sync Stock for'} ${rows.length} Products`;
+  if (_mode === 'sync') document.getElementById('upload-btn').style.background = '#dc2626';
+  else document.getElementById('upload-btn').style.background = '';
+  document.getElementById('upload-btn').disabled = false;
+
+  tbl.innerHTML = `<table>
+    <thead><tr><th>#</th><th>Name</th><th>Category</th><th>Price</th><th>Half</th><th>Unit</th><th>Stock</th><th>Status</th></tr></thead>
+    <tbody>${rows.slice(0, 100).map((r, i) => `<tr>
+      <td style="color:var(--text3);font-family:var(--mono)">${i + 1}</td>
+      <td><div class="col-name">${esc(r.name)}</div>${r.teluguName ? `<div class="col-tel">${r.teluguName}</div>` : ''}</td>
+      <td><span class="col-cat">${r.category}</span></td>
+      <td><span class="col-price">₹${r.price}</span></td>
+      <td><span class="col-price-alt">${r.halfPrice ? '₹' + r.halfPrice : '—'}</span></td>
+      <td style="font-size:11px;color:var(--text2)">${r.unit}</td>
+      <td style="font-family:var(--mono);font-size:12px">${r.stock}</td>
+      <td>${r.outOfStock ? '<span class="badge-oos">Out of Stock</span>' : '<span class="badge-ok">Active</span>'}</td>
+    </tr>`).join('')}
+    ${rows.length > 100 ? `<tr><td colspan="8" style="text-align:center;padding:12px;color:var(--text2)">… and ${rows.length - 100} more rows</td></tr>` : ''}
+    </tbody></table>`;
+}
+
+function clearParse() {
+  _parsedRows = [];
+  document.getElementById('parse-results').style.display = 'none';
+}
+
+// ── UPLOAD ────────────────────────────────────────────────
+async function doUpload() {
+  if (!_parsedRows.length) { toast('No products to upload', 'err'); return; }
+
+  if (!window.db) {
+    // Simulate upload when not connected to Firebase
+    simulateUpload();
+    return;
+  }
+
+  const btn = document.getElementById('upload-btn');
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner"></span> Uploading…';
+  document.getElementById('upload-progress').style.display = 'block';
+
+  try {
+    let done = 0;
+    const total = _parsedRows.length;
+
+    if (_mode === 'add') {
+      // Check for duplicates against existing products
+      const existingNames = new Set(
+        (_allProducts.length ? _allProducts : (window.allProducts||[])).map(p => (p.name||'').toLowerCase().trim())
+      );
+      const dupes = _parsedRows.filter(r => existingNames.has((r.name||'').toLowerCase().trim()));
+      if (dupes.length) {
+        const dupNames = dupes.slice(0,5).map(r=>r.name).join(', ');
+        const proceed = confirm(`⚠️ ${dupes.length} product(s) already exist with the same name:\n${dupNames}${dupes.length>5?' …':''}.\n\nContinue anyway? (They will be added as duplicates)\n\nClick Cancel to go back and use UPDATE mode instead.`);
+        if (!proceed) { btn.disabled=false; btn.textContent='✅ Confirm Upload'; return; }
+      }
+      const BATCH = 400;
+      for (let i = 0; i < _parsedRows.length; i += BATCH) {
+        const batch = window.db.batch();
+        _parsedRows.slice(i, i + BATCH).forEach(p => {
+          const clean = { ...p };
+          delete clean._valid;
+          clean.createdAt = firebase.firestore.FieldValue.serverTimestamp();
+          batch.set(window.db.collection('products').doc(), clean);
+          done++;
+        });
+        await batch.commit();
+        setProgress((done / total) * 100, `Uploading… ${done}/${total}`);
+      }
+
+    } else if (_mode === 'update') {
+      // Use local _allProducts (loaded from Firebase) — NOT window.allProducts which may be empty
+      const all = _allProducts.length ? _allProducts : (window.allProducts || window.products || []);
+      if (!all.length) { toast('⚠️ No products loaded. Go to Preview tab first, then retry.', 'err'); btn.disabled=false; btn.textContent='✅ Confirm Upload'; return; }
+      const nameMap = {};
+      all.forEach(p => { nameMap[(p.name || '').toLowerCase().trim()] = p; });
+      const notFound = [];
+      const BATCH = 400;
+
+      for (let i = 0; i < _parsedRows.length; i += BATCH) {
+        const batch = window.db.batch();
+        _parsedRows.slice(i, i + BATCH).forEach(r => {
+          const existing = nameMap[(r.name || '').toLowerCase().trim()];
+          if (!existing || !existing._docId) { notFound.push(r.name); return; }
+          const upd = { ...r }; delete upd._valid; delete upd.id;
+          batch.update(window.db.collection('products').doc(existing._docId), upd);
+          done++;
+        });
+        await batch.commit();
+        setProgress((done / total) * 100, `Updating… ${done}/${total}`);
+      }
+      // Show not-found items to user
+      if (notFound.length) {
+        const shown = notFound.slice(0,5).join(', ');
+        toast(`⚠️ ${done} updated. ${notFound.length} not found (name mismatch): ${shown}${notFound.length>5?' …':''}`, 'warn');
+      }
+
+    } else if (_mode === 'stock') {
+      const all = _allProducts.length ? _allProducts : (window.allProducts || window.products || []);
+      if (!all.length) { toast('⚠️ No products loaded. Go to Preview tab first, then retry.', 'err'); btn.disabled=false; btn.textContent='✅ Confirm Upload'; return; }
+      const nameMap = {};
+      all.forEach(p => { nameMap[(p.name || '').toLowerCase().trim()] = p; });
+      const stockNotFound = [];
+      for (let i = 0; i < _parsedRows.length; i += 400) {
+        const batch = window.db.batch();
+        _parsedRows.slice(i, i + 400).forEach(r => {
+          const existing = nameMap[(r.name || '').toLowerCase().trim()];
+          if (!existing || !existing._docId) { stockNotFound.push(r.name); return; }
+          batch.update(window.db.collection('products').doc(existing._docId), {
+            stock: r.stock, outOfStock: r.outOfStock
+          });
+          done++;
+        });
+        await batch.commit();
+        setProgress((done / total) * 100, `Syncing… ${done}/${total}`);
+      }
+      if (stockNotFound.length) {
+        toast(`⚠️ ${done} synced. ${stockNotFound.length} products not found by name.`, 'warn');
+      }
+
+    } else if (_mode === 'sync') {
+      const all = _allProducts.length ? _allProducts : (window.allProducts || window.products || []);
+      if (!all.length) { toast('⚠️ No products loaded. Go to Preview tab first.', 'err'); btn.disabled=false; btn.textContent='✅ Confirm Upload'; return; }
+
+      const confirmed = confirm(
+        '⚠️ SYNC MODE — READ CAREFULLY\n\n' +
+        'Uploading: ' + _parsedRows.length + ' products\n' +
+        'Currently in app: ' + all.length + ' products\n\n' +
+        (all.length - _parsedRows.length > 0 ? (all.length - _parsedRows.length) + ' products NOT in your file will be PERMANENTLY DELETED.\n\n' : '') +
+        'This cannot be undone. Continue?'
+      );
+      if (!confirmed) { btn.disabled=false; btn.textContent='✅ Confirm Upload'; btn.style.background=''; return; }
+
+      const nameMap = {};
+      all.forEach(p => { nameMap[(p.name||'').toLowerCase().trim()] = p; });
+      const uploadedNames = new Set();
+      const BATCH = 400;
+
+      // Step 1: Update or add each row from file
+      for (let i = 0; i < _parsedRows.length; i += BATCH) {
+        const batch = window.db.batch();
+        _parsedRows.slice(i, i + BATCH).forEach(r => {
+          const nm = (r.name||'').toLowerCase().trim();
+          uploadedNames.add(nm);
+          const existing = nameMap[nm];
+          const clean = { ...r }; delete clean._valid;
+          if (existing && existing._docId) {
+            delete clean.id;
+            batch.update(window.db.collection('products').doc(existing._docId), clean);
+          } else {
+            clean.createdAt = firebase.firestore.FieldValue.serverTimestamp();
+            batch.set(window.db.collection('products').doc(), clean);
+          }
+          done++;
+        });
+        await batch.commit();
+        setProgress(Math.round((done / _parsedRows.length) * 60), `Syncing ${done}/${_parsedRows.length}…`);
+      }
+
+      // Step 2: Delete products NOT in file
+      const toDelete = all.filter(p => !uploadedNames.has((p.name||'').toLowerCase().trim()) && p._docId);
+      let deleted = 0;
+      for (let i = 0; i < toDelete.length; i += BATCH) {
+        const batch = window.db.batch();
+        toDelete.slice(i, i + BATCH).forEach(p => { batch.delete(window.db.collection('products').doc(p._docId)); deleted++; });
+        await batch.commit();
+        setProgress(60 + Math.round((deleted / Math.max(toDelete.length,1)) * 40), `Deleting ${deleted}/${toDelete.length} old products…`);
+      }
+
+      setProgress(100, '✅ Sync complete!');
+      toast(`✅ Sync done: ${done} kept/updated, ${deleted} deleted. App now shows exactly ${_parsedRows.length} products.`, 'ok');
+      window.db.collection('products').get().then(snap => { _allProducts = snap.docs.map(d => Object.assign({ _docId: d.id }, d.data())); });
+      setTimeout(() => { clearParse(); document.getElementById('upload-progress').style.display='none'; btn.disabled=false; btn.textContent='✅ Confirm Upload'; btn.style.background=''; }, 1800);
+      return;
+    }
+
+    setProgress(100, '✅ Done!');
+    if (_mode !== 'sync') toast(`✅ ${done} products ${_mode === 'add' ? 'added' : 'updated'} successfully!`, 'ok');
+    setTimeout(() => { clearParse(); document.getElementById('upload-progress').style.display = 'none'; }, 1500);
+
+  } catch (e) {
+    toast('Upload error: ' + e.message, 'err');
+    btn.disabled = false;
+    btn.textContent = `✅ Confirm Upload`;
+  }
+}
+
+function simulateUpload() {
+  // Simulate for standalone use (no Firebase)
+  const btn = document.getElementById('upload-btn');
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner"></span> Processing…';
+  document.getElementById('upload-progress').style.display = 'block';
+  let pct = 0;
+  const iv = setInterval(() => {
+    pct += Math.random() * 15;
+    if (pct >= 100) {
+      pct = 100;
+      clearInterval(iv);
+      setProgress(100, '✅ Validated — Ready to upload to Firebase');
+      toast(`✅ ${_parsedRows.length} products validated. Connect to Firebase to upload.`, 'ok');
+      btn.disabled = false;
+      btn.textContent = '✅ Confirm Upload';
+    } else {
+      setProgress(pct, `Processing ${Math.floor(pct / 100 * _parsedRows.length)}/${_parsedRows.length}…`);
+    }
+  }, 120);
+}
+
+function setProgress(pct, label) {
+  document.getElementById('upload-bar').style.width = pct + '%';
+  document.getElementById('upload-status').textContent = label;
+}
+
+// ── DOWNLOAD TEMPLATE ─────────────────────────────────────
+function downloadTemplate() {
+  // If in Update mode — download ALL existing products pre-filled
+  if (_mode === 'update' || _mode === 'stock') {
+    downloadAllProductsTemplate();
+    return;
+  }
+  // Add mode — download blank example template
+  downloadAddTemplate();
+}
+
+function downloadAddTemplate() {
+  const sampleRows = [
+    { 'Name': 'Tomato (Local)', 'Telugu Name': 'టమాటా', 'Price (₹)': 65, 'Half Price (₹)': 35, 'Quarter Price (₹)': 20, 'Slashed Price (₹)': 80, 'Unit': 'Kg', 'Category': 'VEGETABLES', 'Image Filename': 'Tomato.jpg', 'Description': 'Fresh local tomatoes', 'Stock': 100, 'Out of Stock (true/false)': 'false' },
+    { 'Name': 'Banana (Yelakki)', 'Telugu Name': 'అరటి పండు', 'Price (₹)': 75, 'Half Price (₹)': '', 'Quarter Price (₹)': '', 'Slashed Price (₹)': 90, 'Unit': 'Doz', 'Category': 'FRUITS', 'Image Filename': 'Banana.png', 'Description': 'Sweet yellow bananas - per dozen', 'Stock': 80, 'Out of Stock (true/false)': 'false' },
+    { 'Name': 'Amul Butter', 'Telugu Name': 'అమూల్ వెన్న', 'Price (₹)': 60, 'Half Price (₹)': 30, 'Quarter Price (₹)': '', 'Slashed Price (₹)': 70, 'Unit': '100g', 'Category': 'DAIRY', 'Image Filename': 'Butter (Amul).png', 'Description': 'Amul salted butter', 'Stock': 50, 'Out of Stock (true/false)': 'false' },
+    { 'Name': 'Bingo Cream & Onion', 'Telugu Name': 'బింగో క్రీమ్ & ఆనియన్', 'Price (₹)': 20, 'Half Price (₹)': 10, 'Quarter Price (₹)': '', 'Slashed Price (₹)': '', 'Unit': 'Pack', 'Category': 'SNACKS', 'Image Filename': 'Bingo Cream & Onion.jpg', 'Description': '', 'Stock': 200, 'Out of Stock (true/false)': 'false' },
+    { 'Name': 'EXAMPLE — Out of Stock', 'Telugu Name': '', 'Price (₹)': 150, 'Half Price (₹)': '', 'Quarter Price (₹)': '', 'Slashed Price (₹)': 200, 'Unit': 'Pc', 'Category': 'CLEANING', 'Image Filename': '', 'Description': 'This item is marked out of stock', 'Stock': 0, 'Out of Stock (true/false)': 'true' },
+  ];
+  const ws = XLSX.utils.json_to_sheet(sampleRows);
+  ws['!cols'] = [{ wch:30 },{ wch:18 },{ wch:10 },{ wch:12 },{ wch:14 },{ wch:14 },{ wch:10 },{ wch:16 },{ wch:22 },{ wch:30 },{ wch:8 },{ wch:22 }];
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'Products');
+  const catData = VALID_CATS.map(c => ({ 'Category Code': c }));
+  const ws2 = XLSX.utils.json_to_sheet(catData);
+  ws2['!cols'] = [{ wch: 20 }];
+  XLSX.utils.book_append_sheet(wb, ws2, 'Valid Categories');
+  XLSX.writeFile(wb, 'nekta-products-template.xlsx');
+  toast('✅ Template downloaded!', 'ok');
+}
+
+function downloadAllProductsTemplate() {
+  // Collect from all sources
+  var seen = {}, allProds = [];
+  var sources = [_allProducts, window._allProducts, window.allProducts, window.PRODUCT_SEED, window.products];
+  sources.forEach(function(src) {
+    if (!src || !Array.isArray(src)) return;
+    src.forEach(function(p) {
+      var key = String(p.barcode || p.id || p.name || '');
+      if (key && !seen[key]) { seen[key] = true; allProds.push(p); }
+    });
+  });
+
+  if (!allProds.length) {
+    // Try loading from Firebase
+    if (window.db) {
+      toast('Loading products from Firebase…', 'info');
+      window.db.collection('products').get().then(function(snap) {
+        var fbProds = snap.docs.map(function(d) { return Object.assign({ _docId: d.id }, d.data()); });
+        if (fbProds.length) {
+          _allProducts = fbProds;
+          downloadAllProductsTemplate();
+        } else {
+          toast('No products found in Firebase', 'err');
+        }
+      }).catch(function(e) { toast('Firebase error: ' + e.message, 'err'); });
+      return;
+    }
+    toast('No products loaded yet. Switch to Preview tab first, then try again.', 'err');
+    return;
+  }
+
+  var rows = allProds.map(function(p) {
+    return {
+      'Name':                      p.name         || '',
+      'Telugu Name':               p.teluguName   || '',
+      'Price (₹)':                 p.price        !== undefined ? p.price        : '',
+      'Half Price (₹)':            p.halfPrice    !== undefined ? p.halfPrice    : '',
+      'Quarter Price (₹)':         p.quarterPrice !== undefined ? p.quarterPrice : '',
+      'Slashed Price (₹)':         p.slashedPrice !== undefined ? p.slashedPrice : '',
+      'Unit':                      p.unit         || '',
+      'Category':                  p.category     || '',
+      'Image Filename':            (p.img || '').replace('./images/', '').replace('images/', ''),
+      'Description':               p.description  || '',
+      'Stock':                     p.stock        !== undefined ? p.stock        : '',
+      'Out of Stock (true/false)': p.outOfStock   ? 'true' : 'false'
+    };
+  });
+
+  var ws = XLSX.utils.json_to_sheet(rows);
+  ws['!cols'] = [{ wch:30 },{ wch:18 },{ wch:10 },{ wch:12 },{ wch:14 },{ wch:14 },{ wch:10 },{ wch:16 },{ wch:22 },{ wch:30 },{ wch:8 },{ wch:22 }];
+  var wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'All Products');
+  var catData = VALID_CATS.map(function(c) { return { 'Category Code': c }; });
+  var ws2 = XLSX.utils.json_to_sheet(catData);
+  ws2['!cols'] = [{ wch: 20 }];
+  XLSX.utils.book_append_sheet(wb, ws2, 'Valid Categories');
+  XLSX.writeFile(wb, 'nekta-all-products-' + new Date().toISOString().slice(0,10) + '.xlsx');
+  toast('✅ Downloaded ' + rows.length + ' products. Edit and re-upload.', 'ok');
+}
+
+// ── EXPORT ALL ────────────────────────────────────────────
+function downloadExport() {
+  const data = _filteredProducts.length ? _filteredProducts : _allProducts;
+  if (!data.length) { toast('No products to export', 'err'); return; }
+
+  const rows = data.map(p => ({
+    'ID':                       p.id || '',
+    'Name':                     p.name || '',
+    'Telugu Name':               p.teluguName || '',
+    'Price (₹)':                p.price || 0,
+    'Half Price (₹)':           p.halfPrice || '',
+    'Quarter Price (₹)':        p.quarterPrice || '',
+    'Slashed Price (₹)':        p.slashedPrice || '',
+    'Unit':                     p.unit || '',
+    'Category':                 p.category || '',
+    'Image Filename':           (p.img || '').replace('./images/', '').replace('images/', ''),
+    'Description':              p.description || '',
+    'Stock':                    p.stock ?? 100,
+    'Out of Stock (true/false)': p.outOfStock ? 'true' : 'false',
+  }));
+
+  const ws = XLSX.utils.json_to_sheet(rows);
+  ws['!cols'] = [
+    { wch: 6 }, { wch: 30 }, { wch: 18 }, { wch: 10 }, { wch: 12 }, { wch: 14 },
+    { wch: 14 }, { wch: 10 }, { wch: 16 }, { wch: 22 }, { wch: 30 }, { wch: 8 }, { wch: 22 }
+  ];
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'Products');
+  XLSX.writeFile(wb, `nekta-products-${new Date().toISOString().slice(0, 10)}.xlsx`);
+  toast(`✅ Exported ${data.length} products`, 'ok');
+}
+
+function downloadValidatedFile() {
+  if (!_parsedRows.length) { toast('No parsed rows to download', 'err'); return; }
+  const rows = _parsedRows.map(p => ({
+    'Name': p.name, 'Telugu Name': p.teluguName, 'Price (₹)': p.price,
+    'Half Price (₹)': p.halfPrice || '', 'Quarter Price (₹)': p.quarterPrice || '',
+    'Slashed Price (₹)': p.slashedPrice || '', 'Unit': p.unit, 'Category': p.category,
+    'Image Filename': (p.img || '').replace('images/', ''),
+    'Description': p.description, 'Stock': p.stock,
+    'Out of Stock (true/false)': p.outOfStock ? 'true' : 'false',
+  }));
+  const ws = XLSX.utils.json_to_sheet(rows);
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'Validated');
+  XLSX.writeFile(wb, `nekta-validated-${Date.now()}.xlsx`);
+  toast('✅ Validated file downloaded', 'ok');
+}
+
+// ── PRODUCT TABLE ─────────────────────────────────────────
+function renderProductTable() {
+  const prods = _allProducts.length ? _allProducts : (window.products || []);
+  if (!prods.length) return;
+  _allProducts = prods;
+  _filteredProducts = prods;
+  updateStats();
+  renderTable(prods);
+}
+
+function filterTable(q) {
+  const cat = document.getElementById('cat-filter')?.value || '';
+  let list = _allProducts;
+  if (cat) list = list.filter(p => p.category === cat);
+  if (q) {
+    const lq = q.toLowerCase();
+    list = list.filter(p => (p.name || '').toLowerCase().includes(lq) || (p.teluguName || '').includes(q) || (p.category || '').toLowerCase().includes(lq));
+  }
+  _filteredProducts = list;
+  renderTable(list);
+}
+
+function renderTable(prods) {
+  const wrap = document.getElementById('product-table-wrap');
+  if (!prods.length) {
+    wrap.innerHTML = '<div class="empty"><div class="empty-icon">🔍</div><div class="empty-title">No results</div></div>';
+    return;
+  }
+  wrap.innerHTML = `<table>
+    <thead><tr><th>ID</th><th>Name</th><th>Category</th><th>Price</th><th>Half</th><th>Quarter</th><th>Unit</th><th>Stock</th><th>Status</th></tr></thead>
+    <tbody>${prods.map(p => `<tr>
+      <td style="font-family:var(--mono);font-size:11px;color:var(--text3)">${p.id || '—'}</td>
+      <td><div class="col-name">${esc(p.name || '')}</div>${p.teluguName ? `<div class="col-tel">${p.teluguName}</div>` : ''}</td>
+      <td><span class="col-cat">${p.category || ''}</span></td>
+      <td><span class="col-price">₹${p.price || 0}</span>${p.slashedPrice ? `<span class="col-price-alt"> ₹${p.slashedPrice}</span>` : ''}</td>
+      <td class="col-price-alt">${p.halfPrice ? '₹' + p.halfPrice : '—'}</td>
+      <td class="col-price-alt">${p.quarterPrice ? '₹' + p.quarterPrice : '—'}</td>
+      <td style="font-size:11px;color:var(--text2)">${p.unit || ''}</td>
+      <td style="font-family:var(--mono);font-size:12px">${p.stock ?? '?'}</td>
+      <td>${p.outOfStock ? '<span class="badge-oos">OOS</span>' : '<span class="badge-ok">Active</span>'}</td>
+    </tr>`).join('')}</tbody></table>`;
+}
+
+// ── HEALTH CHECK ──────────────────────────────────────────
+function runHealthCheck() {
+  const prods = _allProducts.length ? _allProducts : (window.products || []);
+  if (!prods.length) {
+    document.getElementById('health-summary').innerHTML = '⚠️ No products loaded. Open the Preview tab first.';
+    return;
+  }
+  _allProducts = prods;
+
+  const issues = [];
+  const seenIds = new Set();
+  const seenNames = new Set();
+  let missingImg = 0, missingHalfKg = 0, dupId = 0, dupName = 0, priceIssues = 0, oosCount = 0;
+
+  prods.forEach(p => {
+    const pIssues = [];
+    if (seenIds.has(p.id)) { pIssues.push('Duplicate ID: ' + p.id); dupId++; }
+    if (p.id) seenIds.add(p.id);
+    const nl = (p.name || '').toLowerCase().trim();
+    if (seenNames.has(nl)) { pIssues.push('Duplicate name'); dupName++; }
+    seenNames.add(nl);
+    if (!p.name) pIssues.push('Missing name');
+    if (!p.price || p.price <= 0) { pIssues.push('Invalid price'); priceIssues++; }
+    if (!p.unit) pIssues.push('Missing unit');
+    if (!p.category) pIssues.push('Missing category');
+    if (!p.img || p.img.includes('imgLOGO')) { pIssues.push('Using placeholder image'); missingImg++; }
+    const isKg = p.unit === 'Kg' || (p.unit || '').startsWith('Kg (');
+    if (isKg && !p.halfPrice) { pIssues.push('Kg item missing halfPrice'); missingHalfKg++; }
+    if (p.halfPrice && p.halfPrice >= p.price) pIssues.push('Half price ≥ full price');
+    if (p.quarterPrice && p.halfPrice && p.quarterPrice >= p.halfPrice) pIssues.push('Quarter price ≥ half price');
+    if (p.slashedPrice && p.slashedPrice <= p.price) pIssues.push('Slashed price ≤ selling price');
+    if (p.outOfStock) oosCount++;
+    if (pIssues.length) issues.push({ id: p.id, name: p.name || '(unnamed)', issues: pIssues });
+  });
+
+  const totalIssues = issues.reduce((s, x) => s + x.issues.length, 0);
+  updateStats(totalIssues);
+
+  const summaryEl = document.getElementById('health-summary');
+  if (totalIssues === 0) {
+    summaryEl.className = 'alert alert-ok';
+    summaryEl.innerHTML = `✅ All ${prods.length} products passed health check! No issues found.`;
+  } else {
+    summaryEl.className = 'alert alert-warn';
+    summaryEl.innerHTML = `⚠️ Found <b>${totalIssues} issues</b> across <b>${issues.length} products</b> out of ${prods.length} total.`;
+  }
+
+  const resultsEl = document.getElementById('health-results');
+  const catCounts = {};
+  prods.forEach(p => { catCounts[p.category] = (catCounts[p.category] || 0) + 1; });
+
+  resultsEl.innerHTML = `
+    <div class="grid3" style="margin-bottom:20px">
+      ${mkHealthStat('🖼️', 'Missing Images', missingImg, missingImg > 0 ? 'err' : 'ok')}
+      ${mkHealthStat('⚖️', 'Kg items missing halfPrice', missingHalfKg, missingHalfKg > 0 ? 'warn' : 'ok')}
+      ${mkHealthStat('🔴', 'Out of Stock', oosCount, oosCount > 5 ? 'warn' : 'ok')}
+      ${mkHealthStat('🔁', 'Duplicate IDs', dupId, dupId > 0 ? 'err' : 'ok')}
+      ${mkHealthStat('📛', 'Duplicate Names', dupName, dupName > 0 ? 'err' : 'ok')}
+      ${mkHealthStat('💲', 'Price Issues', priceIssues, priceIssues > 0 ? 'err' : 'ok')}
+    </div>
+
+    ${issues.length ? `
+    <div class="sec-title">Products with Issues (${issues.length})</div>
+    ${issues.slice(0, 50).map(p => `
+      <div class="health-item">
+        <div class="health-icon">⚠️</div>
+        <div style="flex:1">
+          <div class="health-title">${esc(p.name)} <span style="color:var(--text3);font-size:11px;font-family:var(--mono)">ID: ${p.id || '—'}</span></div>
+          <ul class="issue-list">${p.issues.map(i => `<li>${i}</li>`).join('')}</ul>
+        </div>
+      </div>`).join('')}
+    ${issues.length > 50 ? `<div class="alert alert-info">… and ${issues.length - 50} more products with issues</div>` : ''}
+    ` : ''}
+
+    <div class="sec-title" style="margin-top:24px">Category Distribution</div>
+    <div class="tbl-wrap"><table>
+      <thead><tr><th>Category</th><th>Count</th><th>% of Catalog</th><th>Status</th></tr></thead>
+      <tbody>${Object.entries(catCounts).sort((a,b)=>b[1]-a[1]).map(([c,n]) => `<tr>
+        <td><span class="col-cat">${c}</span></td>
+        <td style="font-family:var(--mono);color:var(--green)">${n}</td>
+        <td style="font-family:var(--mono);color:var(--text2)">${Math.round(n / prods.length * 100)}%</td>
+        <td>${n > 0 ? '<span class="badge-ok">OK</span>' : '<span class="badge-warn">Empty</span>'}</td>
+      </tr>`).join('')}</tbody>
+    </table></div>`;
+}
+
+function mkHealthStat(icon, label, val, type) {
+  const color = type === 'ok' ? 'var(--green)' : type === 'err' ? 'var(--red)' : 'var(--amber)';
+  const bg = type === 'ok' ? 'rgba(0,230,118,.06)' : type === 'err' ? 'rgba(255,23,68,.06)' : 'rgba(255,214,0,.06)';
+  return `<div class="stat-badge" style="background:${bg};border-color:transparent">
+    <div style="font-size:22px">${icon}</div>
+    <div><div class="stat-num" style="color:${color};font-size:22px">${val}</div><div class="stat-lbl">${label}</div></div>
+  </div>`;
+}
+
+// ── UTILS ─────────────────────────────────────────────────
+function updateStats(issueCount) {
+  const prods = _allProducts.length ? _allProducts : (window.products || []);
+  document.getElementById('stat-total').textContent = prods.length;
+  if (issueCount !== undefined) document.getElementById('stat-issues').textContent = issueCount;
+  const cats = new Set(prods.map(p => p.category).filter(Boolean));
+  document.getElementById('stat-cats').textContent = cats.size;
+}
+
+function buildCatGuide() {
+  const el = document.getElementById('cat-pills-guide');
+  if (!el) return;
+  el.innerHTML = VALID_CATS.map(c => `<span class="cat-pill" onclick="copyCat('${c}')">${c}</span>`).join('');
+}
+
+function buildCatFilter() {
+  const sel = document.getElementById('cat-filter');
+  if (!sel) return;
+  VALID_CATS.forEach(c => {
+    const opt = document.createElement('option');
+    opt.value = c; opt.textContent = c;
+    sel.appendChild(opt);
+  });
+}
+
+function copyCat(c) {
+  navigator.clipboard?.writeText(c).then(() => toast(`Copied: ${c}`, 'ok'));
+}
+
+function showSection(name) {
+  switchTab(name);
+}
+
+function esc(s) {
+  return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function toast(msg, type = 'ok', ms = 3500) {
+  const wrap = document.getElementById('toasts');
+  const el = document.createElement('div');
+  el.className = `toast toast-${type}`;
+  el.textContent = msg;
+  wrap.appendChild(el);
+  setTimeout(() => el.remove(), ms);
+}
+
+// Auto-load products if available
+setTimeout(() => {
+  if (window.products?.length) {
+    _allProducts = window.products;
+    updateStats(0);
+    runHealthCheck();
+  }
+}, 500);
+</script>
+</body>
+</html>
